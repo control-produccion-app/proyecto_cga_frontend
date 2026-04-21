@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import {
+  ActualizarCliente,
   Cliente,
   Distribucion,
   NuevoCliente,
@@ -55,12 +56,16 @@ export class PedidosDespachoComponent implements OnInit {
   guardandoCliente = signal<boolean>(false);
   guardandoProducto = signal<boolean>(false);
   guardandoDistribucion = signal<boolean>(false);
+  actualizandoCliente = signal<boolean>(false);
+  eliminandoCliente = signal<boolean>(false);
 
   mensajeError = signal<string>('');
   mensajeExito = signal<string>('');
   mensajeErrorCliente = signal<string>('');
   mensajeErrorProducto = signal<string>('');
   mensajeErrorDistribucion = signal<string>('');
+  mensajeErrorGestionClientes = signal<string>('');
+  mensajeExitoGestionClientes = signal<string>('');
 
   textoBusqueda = '';
   distribucionSeleccionada = '';
@@ -69,6 +74,12 @@ export class PedidosDespachoComponent implements OnInit {
   modalClienteAbierto = false;
   modalProductoAbierto = false;
   modalDistribucionAbierto = false;
+  modalGestionClientesAbierto = false;
+  modalConfirmarEliminarClienteAbierto = false;
+
+  idClienteEditando: number | null = null;
+  clientePendienteEliminar: Cliente | null = null;
+  textoConfirmacionEliminar = '';
 
   formularioPedido: NuevoPedido = {
     fecha_pedido: this.obtenerFechaHoy(),
@@ -88,6 +99,16 @@ export class PedidosDespachoComponent implements OnInit {
   detallesPendientes: DetallePendiente[] = [];
 
   formularioCliente: NuevoCliente = {
+    rut: '',
+    digito_verificador: '',
+    nombre_cliente: '',
+    ciudad: '',
+    direccion: '',
+    telefono: '',
+    descuento_aplicado: 0
+  };
+
+  formularioEditarCliente: ActualizarCliente = {
     rut: '',
     digito_verificador: '',
     nombre_cliente: '',
@@ -145,10 +166,7 @@ export class PedidosDespachoComponent implements OnInit {
     );
 
     return this.distribuciones().filter((distribucion) => {
-      if (
-        existeSalaDeVentas &&
-        this.esRetiroPanaderia(distribucion.nombre_distribucion)
-      ) {
+      if (existeSalaDeVentas && this.esRetiroPanaderia(distribucion.nombre_distribucion)) {
         return false;
       }
 
@@ -316,6 +334,199 @@ export class PedidosDespachoComponent implements OnInit {
     this.reiniciarFormularioDistribucion();
   }
 
+  abrirGestionClientes(): void {
+    if (!this.esAdmin) {
+      this.mensajeError.set('Solo el Administrador puede gestionar clientes.');
+      return;
+    }
+
+    this.mensajeErrorGestionClientes.set('');
+    this.mensajeExitoGestionClientes.set('');
+    this.idClienteEditando = null;
+    this.clientePendienteEliminar = null;
+    this.textoConfirmacionEliminar = '';
+    this.reiniciarFormularioEditarCliente();
+    this.modalGestionClientesAbierto = true;
+  }
+
+  cerrarGestionClientes(): void {
+    if (this.actualizandoCliente() || this.eliminandoCliente()) {
+      return;
+    }
+
+    this.modalGestionClientesAbierto = false;
+    this.idClienteEditando = null;
+    this.clientePendienteEliminar = null;
+    this.textoConfirmacionEliminar = '';
+    this.reiniciarFormularioEditarCliente();
+  }
+
+  editarCliente(cliente: Cliente): void {
+    this.idClienteEditando = cliente.id_cliente;
+
+    this.formularioEditarCliente = {
+      rut: cliente.rut,
+      digito_verificador: cliente.digito_verificador,
+      nombre_cliente: cliente.nombre_cliente,
+      ciudad: cliente.ciudad,
+      direccion: cliente.direccion,
+      telefono: cliente.telefono,
+      descuento_aplicado: cliente.descuento_aplicado
+    };
+
+    this.mensajeErrorGestionClientes.set('');
+    this.mensajeExitoGestionClientes.set('');
+  }
+
+  cancelarEdicionCliente(): void {
+    this.idClienteEditando = null;
+    this.reiniciarFormularioEditarCliente();
+  }
+
+  guardarEdicionCliente(): void {
+    if (!this.esAdmin) {
+      this.mensajeErrorGestionClientes.set('Solo el Administrador puede editar clientes.');
+      return;
+    }
+
+    this.mensajeErrorGestionClientes.set('');
+    this.mensajeExitoGestionClientes.set('');
+
+    const mensajeValidacion = this.validarDatosCliente(
+      this.formularioEditarCliente,
+      this.idClienteEditando
+    );
+
+    if (mensajeValidacion) {
+      this.mensajeErrorGestionClientes.set(mensajeValidacion);
+      return;
+    }
+
+    if (!this.idClienteEditando) {
+      this.mensajeErrorGestionClientes.set('Debes seleccionar un cliente para editar.');
+      return;
+    }
+
+    const payload: ActualizarCliente = this.construirPayloadCliente(this.formularioEditarCliente);
+
+    this.actualizandoCliente.set(true);
+
+    this.pedidosService.actualizarCliente(this.idClienteEditando, payload).subscribe({
+      next: () => {
+        this.actualizandoCliente.set(false);
+        this.idClienteEditando = null;
+        this.reiniciarFormularioEditarCliente();
+        this.mensajeExitoGestionClientes.set('Cliente actualizado correctamente.');
+        this.recargarClientes();
+        this.recargarPedidos();
+      },
+      error: (error: any) => {
+        this.actualizandoCliente.set(false);
+        this.mensajeErrorGestionClientes.set(
+          this.obtenerMensajeError(error, 'No se pudo actualizar el cliente')
+        );
+      }
+    });
+  }
+
+  abrirConfirmacionEliminarCliente(cliente: Cliente): void {
+    this.mensajeErrorGestionClientes.set('');
+    this.mensajeExitoGestionClientes.set('');
+
+    if (this.clienteTienePedidos(cliente)) {
+      this.mensajeErrorGestionClientes.set(
+        'No se puede eliminar este cliente porque tiene pedidos asociados. Puedes editar sus datos.'
+      );
+      return;
+    }
+
+    this.clientePendienteEliminar = cliente;
+    this.textoConfirmacionEliminar = '';
+    this.modalConfirmarEliminarClienteAbierto = true;
+  }
+
+  cerrarConfirmacionEliminarCliente(): void {
+    if (this.eliminandoCliente()) {
+      return;
+    }
+
+    this.modalConfirmarEliminarClienteAbierto = false;
+    this.clientePendienteEliminar = null;
+    this.textoConfirmacionEliminar = '';
+  }
+
+  puedeConfirmarEliminacion(): boolean {
+    if (!this.clientePendienteEliminar) {
+      return false;
+    }
+
+    return this.textoConfirmacionEliminar.trim() === this.clientePendienteEliminar.nombre_cliente;
+  }
+
+  confirmarEliminarCliente(): void {
+    if (!this.esAdmin) {
+      this.mensajeErrorGestionClientes.set('Solo el Administrador puede eliminar clientes.');
+      return;
+    }
+
+    if (!this.clientePendienteEliminar) {
+      return;
+    }
+
+    if (!this.puedeConfirmarEliminacion()) {
+      this.mensajeErrorGestionClientes.set(
+        'Para eliminar, debes escribir exactamente el nombre del cliente.'
+      );
+      return;
+    }
+
+    if (this.clienteTienePedidos(this.clientePendienteEliminar)) {
+      this.mensajeErrorGestionClientes.set(
+        'No se puede eliminar este cliente porque tiene pedidos asociados. Puedes editar sus datos.'
+      );
+      this.cerrarConfirmacionEliminarCliente();
+      return;
+    }
+
+    const idCliente = this.clientePendienteEliminar.id_cliente;
+
+    this.eliminandoCliente.set(true);
+
+    this.pedidosService.eliminarCliente(idCliente).subscribe({
+      next: () => {
+        this.eliminandoCliente.set(false);
+        this.modalConfirmarEliminarClienteAbierto = false;
+        this.clientePendienteEliminar = null;
+        this.textoConfirmacionEliminar = '';
+        this.mensajeExitoGestionClientes.set('Cliente eliminado correctamente.');
+
+        if (this.formularioPedido.id_cliente === idCliente) {
+          this.formularioPedido.id_cliente = 0;
+        }
+
+        this.recargarClientes();
+        this.recargarPedidos();
+      },
+      error: (error: any) => {
+        this.eliminandoCliente.set(false);
+        this.mensajeErrorGestionClientes.set(
+          this.obtenerMensajeError(
+            error,
+            'No se pudo eliminar el cliente. Puede tener pedidos asociados'
+          )
+        );
+      }
+    });
+  }
+
+  clienteTienePedidos(cliente: Cliente): boolean {
+    return this.pedidos().some((pedido) => pedido.id_cliente === cliente.id_cliente);
+  }
+
+  cantidadPedidosCliente(cliente: Cliente): number {
+    return this.pedidos().filter((pedido) => pedido.id_cliente === cliente.id_cliente).length;
+  }
+
   alCambiarCliente(): void {
     this.recalcularPrecioDetalle();
   }
@@ -464,7 +675,7 @@ export class PedidosDespachoComponent implements OnInit {
       error: (error: any) => {
         this.guardandoPedido.set(false);
         this.mensajeError.set(
-          this.obtenerMensajeError(error, 'No se pudo guardar el pedido.')
+          this.obtenerMensajeError(error, 'No se pudo guardar el pedido')
         );
       }
     });
@@ -478,47 +689,16 @@ export class PedidosDespachoComponent implements OnInit {
 
     this.mensajeErrorCliente.set('');
 
-    if (!this.formularioCliente.rut || Number(this.formularioCliente.rut) <= 0) {
-      this.mensajeErrorCliente.set('Debes ingresar un RUT válido sin puntos ni dígito verificador.');
-      return;
-    }
+    const mensajeValidacion = this.validarDatosCliente(this.formularioCliente);
 
-    if (!this.formularioCliente.digito_verificador.trim()) {
-      this.mensajeErrorCliente.set('Debes ingresar el dígito verificador.');
-      return;
-    }
-
-    if (!this.formularioCliente.nombre_cliente.trim()) {
-      this.mensajeErrorCliente.set('Debes ingresar el nombre del cliente.');
-      return;
-    }
-
-    if (!this.formularioCliente.ciudad.trim()) {
-      this.mensajeErrorCliente.set('Debes ingresar la ciudad.');
-      return;
-    }
-
-    if (!this.formularioCliente.direccion.trim()) {
-      this.mensajeErrorCliente.set('Debes ingresar la dirección.');
-      return;
-    }
-
-    if (!this.formularioCliente.telefono.trim()) {
-      this.mensajeErrorCliente.set('Debes ingresar el teléfono.');
+    if (mensajeValidacion) {
+      this.mensajeErrorCliente.set(mensajeValidacion);
       return;
     }
 
     this.guardandoCliente.set(true);
 
-    const payload: NuevoCliente = {
-      rut: Number(this.formularioCliente.rut),
-      digito_verificador: this.formularioCliente.digito_verificador.trim(),
-      nombre_cliente: this.formularioCliente.nombre_cliente.trim(),
-      ciudad: this.formularioCliente.ciudad.trim(),
-      direccion: this.formularioCliente.direccion.trim(),
-      telefono: this.formularioCliente.telefono.trim(),
-      descuento_aplicado: this.formularioCliente.descuento_aplicado || 0
-    };
+    const payload: NuevoCliente = this.construirPayloadCliente(this.formularioCliente) as NuevoCliente;
 
     this.pedidosService.crearCliente(payload).subscribe({
       next: (clienteCreado: Cliente) => {
@@ -530,7 +710,7 @@ export class PedidosDespachoComponent implements OnInit {
       error: (error: any) => {
         this.guardandoCliente.set(false);
         this.mensajeErrorCliente.set(
-          this.obtenerMensajeError(error, 'No se pudo crear el cliente.')
+          this.obtenerMensajeError(error, 'No se pudo crear el cliente')
         );
       }
     });
@@ -576,7 +756,7 @@ export class PedidosDespachoComponent implements OnInit {
       error: (error: any) => {
         this.guardandoProducto.set(false);
         this.mensajeErrorProducto.set(
-          this.obtenerMensajeError(error, 'No se pudo crear el producto.')
+          this.obtenerMensajeError(error, 'No se pudo crear el producto')
         );
       }
     });
@@ -611,7 +791,7 @@ export class PedidosDespachoComponent implements OnInit {
       error: (error: any) => {
         this.guardandoDistribucion.set(false);
         this.mensajeErrorDistribucion.set(
-          this.obtenerMensajeError(error, 'No se pudo crear la distribución.')
+          this.obtenerMensajeError(error, 'No se pudo crear la distribución')
         );
       }
     });
@@ -692,6 +872,10 @@ export class PedidosDespachoComponent implements OnInit {
     return `${producto.nombre_producto} · ${producto.tipo_produccion_nombre} · ${this.formatearDinero(this.obtenerPrecioReferenciaProducto(producto))}`;
   }
 
+  formatearRut(cliente: Cliente): string {
+    return `${cliente.rut}-${String(cliente.digito_verificador).toUpperCase()}`;
+  }
+
   formatearDistribucion(nombre: string): string {
     if (this.esRetiroPanaderia(nombre)) {
       return 'Sala de ventas';
@@ -748,6 +932,104 @@ export class PedidosDespachoComponent implements OnInit {
       style: 'currency',
       currency: 'CLP',
       maximumFractionDigits: 0
+    });
+  }
+
+  private validarDatosCliente(
+    datos: NuevoCliente | ActualizarCliente,
+    idClienteIgnorar?: number | null
+  ): string {
+    const rut = String(datos.rut ?? '').trim();
+    const dv = String(datos.digito_verificador ?? '').trim().toUpperCase();
+    const nombre = String(datos.nombre_cliente ?? '').trim();
+    const ciudad = String(datos.ciudad ?? '').trim();
+    const direccion = String(datos.direccion ?? '').trim();
+    const telefono = String(datos.telefono ?? '').trim();
+    const descuento = Number(datos.descuento_aplicado ?? 0);
+
+    if (!/^\d{8}$/.test(rut)) {
+      return 'El RUT debe tener exactamente 8 dígitos numéricos, sin puntos ni dígito verificador.';
+    }
+
+    if (!/^[0-9K]$/.test(dv)) {
+      return 'El dígito verificador debe ser un número del 0 al 9 o la letra K.';
+    }
+
+    const dvCalculado = this.calcularDvRut(rut);
+
+    if (dv !== dvCalculado) {
+      return 'El dígito verificador no corresponde al RUT ingresado. Revisa los datos.';
+    }
+
+    if (this.existeRutDuplicado(rut, dv, idClienteIgnorar)) {
+      return 'Ya existe un cliente registrado con el mismo RUT y dígito verificador.';
+    }
+
+    if (nombre.length < 3 || !/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(nombre)) {
+      return 'El nombre del cliente debe tener al menos 3 caracteres y contener letras.';
+    }
+
+    if (ciudad.length < 3 || !/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(ciudad)) {
+      return 'La ciudad debe tener al menos 3 caracteres y contener letras.';
+    }
+
+    if (direccion.length < 5 || !/[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9]/.test(direccion)) {
+      return 'La dirección debe tener al menos 5 caracteres y contener letras o números.';
+    }
+
+    if (!/^\+569\d{8}$/.test(telefono)) {
+      return 'El teléfono debe usar formato chileno +569XXXXXXXX. Ejemplo: +56912345678.';
+    }
+
+    if (Number.isNaN(descuento) || descuento < 0 || descuento > 100) {
+      return 'El descuento debe ser un número entre 0 y 100.';
+    }
+
+    return '';
+  }
+
+  private construirPayloadCliente(datos: NuevoCliente | ActualizarCliente): ActualizarCliente {
+    return {
+      rut: Number(String(datos.rut).trim()),
+      digito_verificador: String(datos.digito_verificador).trim().toUpperCase(),
+      nombre_cliente: String(datos.nombre_cliente).trim(),
+      ciudad: String(datos.ciudad).trim(),
+      direccion: String(datos.direccion).trim(),
+      telefono: String(datos.telefono).trim(),
+      descuento_aplicado: Number(datos.descuento_aplicado ?? 0)
+    };
+  }
+
+  private calcularDvRut(rutSinDv: string): string {
+    let suma = 0;
+    let multiplicador = 2;
+
+    for (let i = rutSinDv.length - 1; i >= 0; i -= 1) {
+      suma += Number(rutSinDv[i]) * multiplicador;
+      multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
+    }
+
+    const resto = suma % 11;
+    const resultado = 11 - resto;
+
+    if (resultado === 11) {
+      return '0';
+    }
+
+    if (resultado === 10) {
+      return 'K';
+    }
+
+    return String(resultado);
+  }
+
+  private existeRutDuplicado(rut: string, dv: string, idClienteIgnorar?: number | null): boolean {
+    return this.clientes().some((cliente) => {
+      const mismoRut = String(cliente.rut) === rut;
+      const mismoDv = String(cliente.digito_verificador).toUpperCase() === dv;
+      const mismoClienteEditado = idClienteIgnorar && cliente.id_cliente === idClienteIgnorar;
+
+      return mismoRut && mismoDv && !mismoClienteEditado;
     });
   }
 
@@ -864,6 +1146,18 @@ export class PedidosDespachoComponent implements OnInit {
 
   private reiniciarFormularioCliente(): void {
     this.formularioCliente = {
+      rut: '',
+      digito_verificador: '',
+      nombre_cliente: '',
+      ciudad: '',
+      direccion: '',
+      telefono: '',
+      descuento_aplicado: 0
+    };
+  }
+
+  private reiniciarFormularioEditarCliente(): void {
+    this.formularioEditarCliente = {
       rut: '',
       digito_verificador: '',
       nombre_cliente: '',

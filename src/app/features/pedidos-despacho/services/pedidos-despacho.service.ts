@@ -86,6 +86,16 @@ export interface NuevoCliente {
   descuento_aplicado?: number | string;
 }
 
+export interface ActualizarCliente {
+  rut?: number | string;
+  digito_verificador?: string;
+  nombre_cliente?: string;
+  ciudad?: string;
+  direccion?: string;
+  telefono?: string;
+  descuento_aplicado?: number | string;
+}
+
 export interface NuevoProducto {
   nombre_producto: string;
   precio_sugerido: number | string;
@@ -147,6 +157,17 @@ export class PedidosDespachoService {
 
   crearCliente(payload: NuevoCliente): Observable<Cliente> {
     return this.http.post<Cliente>(`${this.apiUrl}/api/ventas/clientes/`, payload);
+  }
+
+  actualizarCliente(idCliente: number, payload: ActualizarCliente): Observable<Cliente> {
+    return this.http.patch<Cliente>(
+      `${this.apiUrl}/api/ventas/clientes/${idCliente}/`,
+      payload
+    );
+  }
+
+  eliminarCliente(idCliente: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/api/ventas/clientes/${idCliente}/`);
   }
 
   listarProductos(): Observable<Producto[]> {

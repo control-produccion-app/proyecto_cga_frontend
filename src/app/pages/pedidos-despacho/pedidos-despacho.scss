@@ -22,6 +22,12 @@
   }
 }
 
+.acciones-encabezado {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .resumen-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -32,7 +38,8 @@
 .panel-filtros,
 .tabla-wrapper,
 .panel-detalle,
-.tabla-detalles-pendientes {
+.tabla-detalles-pendientes,
+.tabla-gestion-wrapper {
   background: #fff;
   border: 1px solid #e6e9ef;
   border-radius: 16px;
@@ -91,6 +98,11 @@
       border-color: #22a699;
       box-shadow: 0 0 0 3px rgba(34, 166, 153, 0.14);
     }
+
+    &[readonly] {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
   }
 }
 
@@ -102,7 +114,8 @@
 }
 
 .tabla-wrapper,
-.tabla-detalles-pendientes {
+.tabla-detalles-pendientes,
+.tabla-gestion-wrapper {
   overflow-x: auto;
 }
 
@@ -190,7 +203,8 @@ details summary {
 .btn-principal,
 .btn-secundario,
 .btn-cerrar,
-.btn-tabla {
+.btn-tabla,
+.btn-peligro-grande {
   border-radius: 10px;
   cursor: pointer;
   transition: 0.2s ease;
@@ -244,12 +258,38 @@ details summary {
   color: #1f2937;
   padding: 0.45rem 0.65rem;
   font-size: 0.82rem;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 }
 
-.btn-peligro {
+.btn-peligro,
+.btn-peligro-grande {
   color: #b91c1c;
   border-color: #fecaca;
   background: #fef2f2;
+}
+
+.btn-peligro-grande {
+  border: 1px solid #fecaca;
+  padding: 0.9rem 1.15rem;
+
+  &:hover:not(:disabled) {
+    background: #fee2e2;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.acciones-tabla {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .modal-backdrop {
@@ -286,6 +326,16 @@ details summary {
 
 .modal-panel-secundario {
   width: min(650px, calc(100vw - 2rem));
+  z-index: 1110;
+}
+
+.modal-panel-gestion {
+  width: min(1100px, calc(100vw - 2rem));
+  z-index: 1010;
+}
+
+.modal-panel-confirmacion {
+  width: min(640px, calc(100vw - 2rem));
   z-index: 1110;
 }
 
@@ -347,7 +397,9 @@ details summary {
 }
 
 .panel-detalle,
-.tabla-detalles-pendientes {
+.tabla-detalles-pendientes,
+.panel-edicion-cliente,
+.resumen-eliminacion {
   padding: 1rem;
 
   h3 {
@@ -356,9 +408,31 @@ details summary {
   }
 }
 
+.panel-edicion-cliente,
+.resumen-eliminacion {
+  border: 1px solid #e6e9ef;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.resumen-eliminacion {
+  p {
+    margin: 0.35rem 0;
+  }
+}
+
+.acciones-edicion {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
 @media (max-width: 900px) {
   .encabezado,
-  .modal-footer {
+  .acciones-encabezado,
+  .modal-footer,
+  .acciones-edicion {
     flex-direction: column;
     align-items: stretch;
   }

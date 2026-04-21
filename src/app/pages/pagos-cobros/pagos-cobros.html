@@ -1,85 +1,264 @@
 <div class="encabezado-pagina">
   <h1>Pagos / Cobros</h1>
-  <p>Registro de pagos recibidos</p>
+  <p>Registro de pagos recibidos sobre ventas existentes.</p>
 </div>
 
-<div class="fila-acciones">
-  <input class="campo" type="text" placeholder="Buscar por cliente o ID..." />
+<div class="fila-acciones fila-pagos">
+  <input
+    class="campo"
+    type="text"
+    placeholder="Buscar por cliente, producto, código de pedido o movimiento..."
+    [(ngModel)]="textoBusqueda"
+  />
 
-  <select class="campo selector-turno">
-    <option>Todos los turnos</option>
-    <option>Mañana</option>
-    <option>Tarde</option>
-    <option>Noche</option>
+  <select class="campo selector-estado" [(ngModel)]="estadoSeleccionado">
+    <option value="">Todos los estados</option>
+    <option value="PAGADO">Pagado</option>
+    <option value="PENDIENTE">Pendiente</option>
+    <option value="SIN_PAGO">Sin pago</option>
   </select>
 
-  <button class="boton-primario">+ Nuevo Registro</button>
+  <select class="campo selector-orden" [(ngModel)]="criterioOrden">
+    <option value="PENDIENTE_PRIMERO">Pendientes primero</option>
+    <option value="FECHA_RECIENTE">Fecha más reciente</option>
+    <option value="FECHA_ANTIGUA">Fecha más antigua</option>
+    <option value="SALDO_MAYOR">Mayor saldo pendiente</option>
+    <option value="SALDO_MENOR">Menor saldo pendiente</option>
+    <option value="CLIENTE">Cliente A-Z</option>
+    <option value="PEDIDO">Código de pedido</option>
+  </select>
+
+  <button
+    type="button"
+    class="boton-secundario"
+    (click)="limpiarFiltros()"
+    [disabled]="cargando()"
+  >
+    Limpiar filtros
+  </button>
+
+  <button
+    type="button"
+    class="boton-primario"
+    (click)="cargarMovimientos()"
+    [disabled]="cargando()"
+  >
+    Recargar
+  </button>
 </div>
+
+<section class="mensaje mensaje-error" *ngIf="mensajeError()">
+  {{ mensajeError() }}
+</section>
+
+<section class="mensaje mensaje-exito" *ngIf="mensajeExito()">
+  {{ mensajeExito() }}
+</section>
 
 <section class="grilla-resumen">
   <article class="tarjeta resumen-item">
-    <p>Total recibido hoy</p>
-    <h2>$226.000</h2>
+    <p>Total vendido</p>
+    <h2>{{ formatearDinero(totalVendido) }}</h2>
   </article>
 
   <article class="tarjeta resumen-item">
-    <p>Pagos por transferencia</p>
-    <h2>$144.000</h2>
+    <p>Pagado acumulado</p>
+    <h2>{{ formatearDinero(totalPagadoAcumulado) }}</h2>
   </article>
 
   <article class="tarjeta resumen-item">
-    <p>Pagos en efectivo</p>
-    <h2>$82.000</h2>
+    <p>Saldo pendiente</p>
+    <h2 class="saldo-destacado">{{ formatearDinero(totalPendiente) }}</h2>
   </article>
 </section>
 
-<table class="tabla">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Fecha</th>
-      <th>Cliente</th>
-      <th>Referencia</th>
-      <th>Monto</th>
-      <th>Método</th>
-    </tr>
-  </thead>
+<section class="tarjeta tarjeta-tabla">
+  <div class="cabecera-tabla">
+    <div>
+      <h2>Movimientos de venta</h2>
+      <p>
+        Cada pago se suma al pagado acumulado de la línea de venta y actualiza el saldo pendiente.
+      </p>
+    </div>
+  </div>
 
-  <tbody>
-    <tr>
-      <td>PAY001</td>
-      <td>13-04-2026</td>
-      <td>Almacén Don José</td>
-      <td>O001</td>
-      <td>$44.000</td>
-      <td><span class="metodo efectivo">Efectivo</span></td>
-    </tr>
+  <div class="estado-carga" *ngIf="cargando()">
+    Cargando movimientos...
+  </div>
 
-    <tr>
-      <td>PAY002</td>
-      <td>13-04-2026</td>
-      <td>Cafetería Central</td>
-      <td>O002</td>
-      <td>$32.000</td>
-      <td><span class="metodo efectivo">Efectivo</span></td>
-    </tr>
+  <div class="estado-vacio" *ngIf="!cargando() && movimientosFiltrados.length === 0">
+    No hay movimientos que coincidan con los filtros seleccionados.
+  </div>
 
-    <tr>
-      <td>PAY003</td>
-      <td>13-04-2026</td>
-      <td>Hotel Bastolo</td>
-      <td>O003</td>
-      <td>$50.000</td>
-      <td><span class="metodo transferencia">Transferencia</span></td>
-    </tr>
+  <div class="tabla-responsive" *ngIf="!cargando() && movimientosFiltrados.length > 0">
+    <table class="tabla tabla-pagos">
+      <thead>
+        <tr>
+          <th>Documento</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Producto</th>
+          <th>Venta</th>
+          <th>Pagado acumulado</th>
+          <th>Saldo pendiente</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
 
-    <tr>
-      <td>PAY004</td>
-      <td>13-04-2026</td>
-      <td>Iglesia Hurtado</td>
-      <td>O004</td>
-      <td>$100.000</td>
-      <td><span class="metodo transferencia">Transferencia</span></td>
-    </tr>
-  </tbody>
-</table>
+      <tbody>
+        <tr *ngFor="let movimiento of movimientosFiltrados">
+          <td>
+            <strong>{{ formatearCodigoPedido(movimiento) }}</strong>
+            <span class="texto-secundario">
+              {{ formatearCodigoMovimiento(movimiento) }}
+            </span>
+          </td>
+
+          <td>{{ formatearFecha(movimiento.jornada_fecha) }}</td>
+
+          <td>
+            <strong>{{ movimiento.cliente_nombre }}</strong>
+            <span class="texto-secundario">
+              {{ movimiento.distribucion_nombre }}
+            </span>
+          </td>
+
+          <td>
+            <strong>{{ movimiento.producto_nombre }}</strong>
+            <span class="texto-secundario">
+              {{ formatearCantidad(movimiento.cantidad_entregada) }}
+              {{ movimiento.unidad_medida }}
+            </span>
+
+            <span class="badge-condicion" *ngIf="tieneCondicionComercial(movimiento)">
+              Condición comercial aplicada
+            </span>
+          </td>
+
+          <td class="monto">
+            {{ formatearDinero(movimiento.venta_linea) }}
+          </td>
+
+          <td class="monto">
+            {{ formatearDinero(movimiento.cancelacion) }}
+          </td>
+
+          <td class="monto saldo">
+            {{ formatearDinero(calcularSaldoPendiente(movimiento)) }}
+          </td>
+
+          <td>
+            <span class="estado" [ngClass]="obtenerClaseEstado(movimiento)">
+              {{ obtenerEstadoTexto(movimiento) }}
+            </span>
+          </td>
+
+          <td>
+            <button
+              type="button"
+              class="boton-tabla"
+              (click)="abrirModalPago(movimiento)"
+              [disabled]="registrandoPago() || calcularSaldoPendiente(movimiento) <= 0"
+            >
+              {{ obtenerTextoBotonPago(movimiento) }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="modal-fondo" *ngIf="modalPagoAbierto">
+  <section class="modal-contenido" *ngIf="movimientoEnEdicion as movimiento">
+    <div class="modal-encabezado">
+      <div>
+        <h2>Registrar pago recibido</h2>
+        <p>
+          {{ formatearCodigoPedido(movimiento) }} · {{ formatearCodigoMovimiento(movimiento) }}
+        </p>
+        <p>
+          {{ movimiento.cliente_nombre }} · {{ movimiento.producto_nombre }}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="boton-cerrar"
+        aria-label="Cerrar"
+        (click)="cerrarModalPago()"
+        [disabled]="registrandoPago()"
+      >
+        ×
+      </button>
+    </div>
+
+    <div class="resumen-modal">
+      <div>
+        <span>Venta</span>
+        <strong>{{ formatearDinero(movimiento.venta_linea) }}</strong>
+      </div>
+
+      <div>
+        <span>Pagado actual</span>
+        <strong>{{ formatearDinero(movimiento.cancelacion) }}</strong>
+      </div>
+
+      <div>
+        <span>Saldo actual</span>
+        <strong>{{ formatearDinero(calcularSaldoPendiente(movimiento)) }}</strong>
+      </div>
+    </div>
+
+    <label class="grupo-campo">
+      <span>Monto recibido ahora</span>
+      <input
+        class="campo"
+        type="number"
+        min="1"
+        step="1"
+        [max]="calcularSaldoPendiente(movimiento)"
+        [(ngModel)]="montoRecibidoAhora"
+        placeholder="Ej: 5000"
+      />
+    </label>
+
+    <div class="vista-previa-pago">
+      <div>
+        <span>Pagado quedará en</span>
+        <strong>{{ formatearDinero(pagoNuevoCalculado) }}</strong>
+      </div>
+
+      <div>
+        <span>Nuevo saldo pendiente</span>
+        <strong>{{ formatearDinero(saldoNuevoCalculado) }}</strong>
+      </div>
+    </div>
+
+    <p class="ayuda">
+      El monto ingresado se suma al pagado acumulado de esta línea. Esta acción
+      no crea una venta nueva ni recalcula descuentos.
+    </p>
+
+    <div class="acciones-modal">
+      <button
+        type="button"
+        class="boton-secundario"
+        (click)="cerrarModalPago()"
+        [disabled]="registrandoPago()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="boton-primario"
+        (click)="registrarPago()"
+        [disabled]="registrandoPago()"
+      >
+        {{ registrandoPago() ? 'Guardando...' : 'Guardar pago' }}
+      </button>
+    </div>
+  </section>
+</div>

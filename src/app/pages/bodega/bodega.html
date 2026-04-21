@@ -1,130 +1,460 @@
-<div class="encabezado-pagina">
-  <h1>Bodega</h1>
-  <p>Control de insumos, movimientos y conteos físicos</p>
-</div>
+<section class="bodega-page">
+  <div class="encabezado">
+    <div>
+      <h1>Bodega</h1>
+      <p>Control de movimientos de insumos registrados en el backend.</p>
+    </div>
 
-<div class="fila-acciones">
-  <input
-    class="campo"
-    type="text"
-    placeholder="Buscar por insumo..."
-  />
+    <div class="acciones-encabezado">
+      <button class="btn-secundario" type="button" (click)="abrirGestionInsumos()">
+        Gestionar insumos
+      </button>
 
-  <select class="campo selector-movimiento">
-    <option>Todos los movimientos</option>
-    <option>Entrada</option>
-    <option>Salida</option>
-    <option>Ajuste</option>
-  </select>
+      <button class="btn-principal" type="button" (click)="abrirModalMovimiento()">
+        + Nuevo movimiento
+      </button>
+    </div>
+  </div>
 
-  <button class="boton-primario">+ Nuevo movimiento</button>
-</div>
+  @if (mensajeError()) {
+    <div class="alerta alerta-error">
+      {{ mensajeError() }}
+    </div>
+  }
 
-<section class="tarjetas-bodega">
-  <article class="tarjeta-resumen">
-    <span>Insumos activos</span>
-    <strong>5</strong>
-  </article>
+  @if (mensajeExito()) {
+    <div class="alerta alerta-exito">
+      {{ mensajeExito() }}
+    </div>
+  }
 
-  <article class="tarjeta-resumen">
-    <span>Último conteo físico</span>
-    <strong>13-04-2026</strong>
-  </article>
-
-  <article class="tarjeta-resumen alerta">
-    <span>Diferencias detectadas</span>
-    <strong>2</strong>
-  </article>
-</section>
-
-<section class="tarjeta bloque-stock">
-  <h2>Resumen de insumos</h2>
-
-  <div class="grilla-stock">
-    <article class="stock-item">
-      <p>Harina</p>
-      <strong>100 sacos</strong>
-      <span class="texto-normal">Stock sugerido: 120 sacos</span>
+  <div class="resumen-grid">
+    <article class="tarjeta-resumen">
+      <span class="etiqueta">Movimientos cargados</span>
+      <strong>{{ movimientos().length }}</strong>
     </article>
 
-    <article class="stock-item stock-bajo">
-      <p>Levadura</p>
-      <strong>15 unidades</strong>
-      <span>Revisar stock</span>
+    <article class="tarjeta-resumen">
+      <span class="etiqueta">Movimientos visibles</span>
+      <strong>{{ movimientosFiltrados.length }}</strong>
     </article>
 
-    <article class="stock-item">
-      <p>Sal</p>
-      <strong>30 kg</strong>
-      <span class="texto-normal">Sin diferencias</span>
+    <article class="tarjeta-resumen">
+      <span class="etiqueta">Insumos activos</span>
+      <strong>{{ insumosActivos.length }}</strong>
     </article>
+  </div>
 
-    <article class="stock-item">
-      <p>Azúcar</p>
-      <strong>75 kg</strong>
-      <span class="texto-normal">Sin diferencias</span>
-    </article>
+  <div class="panel-filtros">
+    <div class="campo-filtro">
+      <label for="busquedaInsumo">Buscar insumo</label>
+      <input
+        id="busquedaInsumo"
+        type="text"
+        [(ngModel)]="textoBusqueda"
+        placeholder="Ej: harina"
+      />
+    </div>
 
-    <article class="stock-item">
-      <p>Manteca</p>
-      <strong>40 kg</strong>
-      <span class="texto-normal">Sin diferencias</span>
-    </article>
+    <div class="campo-filtro">
+      <label for="tipoMovimiento">Tipo de movimiento</label>
+      <select id="tipoMovimiento" [(ngModel)]="tipoMovimientoSeleccionado">
+        <option value="">Todos</option>
+        <option value="ENTRADA">Entrada</option>
+        <option value="SALIDA">Salida</option>
+        <option value="AJUSTE">Ajuste</option>
+      </select>
+    </div>
+
+    <div class="campo-filtro">
+      <label for="turnoFiltro">Turno</label>
+      <select id="turnoFiltro" [(ngModel)]="turnoSeleccionado">
+        <option value="">Todos</option>
+        @for (turno of turnosFormulario; track turno.id_turno) {
+          <option [value]="turno.nombre_turno">
+            {{ turno.nombre_turno }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="acciones-filtros">
+      <button type="button" class="btn-secundario" (click)="limpiarFiltros()">
+        Limpiar filtros
+      </button>
+    </div>
+  </div>
+
+  <div class="tabla-wrapper">
+    @if (cargando()) {
+      <div class="estado-tabla">Cargando movimientos de bodega...</div>
+    } @else if (movimientosFiltrados.length === 0) {
+      <div class="estado-tabla">No hay movimientos para los filtros seleccionados.</div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Insumo</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Turno</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (movimiento of movimientosFiltrados; track movimiento.id_movimiento_bodega) {
+            <tr>
+              <td>{{ movimiento.id_movimiento_bodega }}</td>
+              <td>{{ formatearFecha(movimiento.fecha_movimiento) }}</td>
+              <td>{{ movimiento.insumo_nombre }}</td>
+              <td>
+                <span
+                  class="badge-tipo"
+                  [class.entrada]="movimiento.tipo_movimiento === 'ENTRADA'"
+                  [class.salida]="movimiento.tipo_movimiento === 'SALIDA'"
+                  [class.ajuste]="movimiento.tipo_movimiento === 'AJUSTE'"
+                >
+                  {{ movimiento.tipo_movimiento }}
+                </span>
+              </td>
+              <td>{{ formatearCantidad(movimiento.cantidad) }}</td>
+              <td>{{ obtenerNombreTurno(movimiento.turno_nombre) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
   </div>
 </section>
 
-<table class="tabla">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Fecha</th>
-      <th>Insumo</th>
-      <th>Tipo movimiento</th>
-      <th>Cantidad</th>
-      <th>Turno</th>
-      <th>Jornada</th>
-    </tr>
-  </thead>
+@if (modalMovimientoAbierto) {
+  <div class="modal-backdrop" (click)="cerrarModalMovimiento()"></div>
 
-  <tbody>
-    <tr>
-      <td>1</td>
-      <td>13-04-2026</td>
-      <td>Harina</td>
-      <td><span class="estado entrada">Entrada</span></td>
-      <td>20 sacos</td>
-      <td>Madrugada</td>
-      <td>13-04-2026</td>
-    </tr>
+  <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="tituloModalMovimiento">
+    <div class="modal-header">
+      <div>
+        <h2 id="tituloModalMovimiento">Nuevo movimiento de bodega</h2>
+        <p>Registra una entrada, salida o ajuste de insumo.</p>
+      </div>
 
-    <tr>
-      <td>2</td>
-      <td>13-04-2026</td>
-      <td>Harina</td>
-      <td><span class="estado salida">Salida</span></td>
-      <td>4,50 sacos</td>
-      <td>Madrugada</td>
-      <td>13-04-2026</td>
-    </tr>
+      <button type="button" class="btn-cerrar" (click)="cerrarModalMovimiento()">×</button>
+    </div>
 
-    <tr>
-      <td>3</td>
-      <td>13-04-2026</td>
-      <td>Levadura</td>
-      <td><span class="estado salida">Salida</span></td>
-      <td>5 unidades</td>
-      <td>Mañana</td>
-      <td>13-04-2026</td>
-    </tr>
+    <div class="modal-body">
+      <div class="campo-formulario insumo-con-accion">
+        <label for="idInsumo">Insumo *</label>
+        <div class="fila-insumo">
+          <select id="idInsumo" [(ngModel)]="formularioMovimiento.id_insumo">
+            <option [ngValue]="0">Seleccione un insumo</option>
+            @for (insumo of insumosActivos; track insumo.id_insumo) {
+              <option [ngValue]="insumo.id_insumo">
+                {{ insumo.nombre_insumo }} ({{ insumo.unidad_control }})
+              </option>
+            }
+          </select>
 
-    <tr>
-      <td>4</td>
-      <td>13-04-2026</td>
-      <td>Sal</td>
-      <td><span class="estado ajuste">Ajuste</span></td>
-      <td>2 kg</td>
-      <td>Tarde</td>
-      <td>13-04-2026</td>
-    </tr>
-  </tbody>
-</table>
+          <button type="button" class="btn-secundario" (click)="abrirModalInsumo()">
+            + Nuevo insumo
+          </button>
+        </div>
+      </div>
+
+      <div class="grid-dos-columnas">
+        <div class="campo-formulario">
+          <label for="fechaMovimiento">Fecha movimiento *</label>
+          <input
+            id="fechaMovimiento"
+            type="text"
+            [value]="formularioMovimiento.fecha_movimiento"
+            readonly
+          />
+        </div>
+
+        <div class="campo-formulario">
+          <label for="tipoMovimientoModal">Tipo movimiento *</label>
+          <select id="tipoMovimientoModal" [(ngModel)]="formularioMovimiento.tipo_movimiento">
+            <option value="ENTRADA">Entrada</option>
+            <option value="SALIDA">Salida</option>
+            <option value="AJUSTE">Ajuste</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-dos-columnas">
+        <div class="campo-formulario">
+          <label for="cantidadMovimiento">Cantidad *</label>
+          <input
+            id="cantidadMovimiento"
+            type="number"
+            min="0.01"
+            step="0.01"
+            [(ngModel)]="formularioMovimiento.cantidad"
+            placeholder="Ej: 10.50"
+          />
+        </div>
+
+        <div class="campo-formulario">
+          <label for="turnoMovimiento">Turno *</label>
+          <select id="turnoMovimiento" [(ngModel)]="formularioMovimiento.id_turno">
+            <option [ngValue]="0">Seleccione un turno</option>
+            @for (turno of turnosFormulario; track turno.id_turno) {
+              <option [ngValue]="turno.id_turno">
+                {{ turno.nombre_turno }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (mensajeError()) {
+        <div class="alerta alerta-error espacio-modal">
+          {{ mensajeError() }}
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-secundario" (click)="cerrarModalMovimiento()">
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn-principal"
+        (click)="guardarMovimiento()"
+        [disabled]="guardandoMovimiento()"
+      >
+        {{ guardandoMovimiento() ? 'Guardando...' : 'Guardar movimiento' }}
+      </button>
+    </div>
+  </section>
+}
+
+@if (modalInsumoAbierto) {
+  <div class="modal-backdrop modal-backdrop-secundario"></div>
+
+  <section class="modal-panel modal-panel-secundario" role="dialog" aria-modal="true" aria-labelledby="tituloModalInsumo">
+    <div class="modal-header">
+      <div>
+        <h2 id="tituloModalInsumo">Nuevo insumo</h2>
+        <p>Crea un insumo y agrégalo a la lista disponible.</p>
+      </div>
+
+      <button type="button" class="btn-cerrar" (click)="cerrarModalInsumo()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="campo-formulario">
+        <label for="nombreInsumo">Nombre insumo *</label>
+        <input
+          id="nombreInsumo"
+          type="text"
+          [(ngModel)]="formularioInsumo.nombre_insumo"
+          placeholder="Ej: Azúcar"
+        />
+      </div>
+
+      <div class="grid-dos-columnas">
+        <div class="campo-formulario">
+          <label for="unidadControl">Unidad control *</label>
+          <input
+            id="unidadControl"
+            type="text"
+            [(ngModel)]="formularioInsumo.unidad_control"
+            placeholder="Ej: kilo, saco, unidad"
+          />
+        </div>
+
+        <div class="campo-formulario">
+          <label for="stockInicial">Stock sugerido inicial *</label>
+          <input
+            id="stockInicial"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="formularioInsumo.stock_sugerido_inicial"
+            placeholder="Ej: 10.00"
+          />
+        </div>
+      </div>
+
+      <div class="campo-formulario">
+        <label for="activoInsumo">Activo *</label>
+        <select id="activoInsumo" [(ngModel)]="formularioInsumo.activo">
+          <option value="S">Sí</option>
+          <option value="N">No</option>
+        </select>
+      </div>
+
+      @if (mensajeErrorInsumo()) {
+        <div class="alerta alerta-error espacio-modal">
+          {{ mensajeErrorInsumo() }}
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-secundario" (click)="cerrarModalInsumo()">
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn-principal"
+        (click)="guardarInsumo()"
+        [disabled]="guardandoInsumo()"
+      >
+        {{ guardandoInsumo() ? 'Guardando...' : 'Guardar insumo' }}
+      </button>
+    </div>
+  </section>
+}
+
+@if (modalGestionInsumosAbierto) {
+  <div class="modal-backdrop" (click)="cerrarGestionInsumos()"></div>
+
+  <section class="modal-panel modal-panel-gestion" role="dialog" aria-modal="true" aria-labelledby="tituloGestionInsumos">
+    <div class="modal-header">
+      <div>
+        <h2 id="tituloGestionInsumos">Gestionar insumos</h2>
+        <p>Edita nombres, corrige unidades o desactiva insumos sin romper movimientos históricos.</p>
+      </div>
+
+      <button type="button" class="btn-cerrar" (click)="cerrarGestionInsumos()">×</button>
+    </div>
+
+    <div class="modal-body">
+      @if (mensajeErrorGestionInsumos()) {
+        <div class="alerta alerta-error">
+          {{ mensajeErrorGestionInsumos() }}
+        </div>
+      }
+
+      @if (mensajeExitoGestionInsumos()) {
+        <div class="alerta alerta-exito">
+          {{ mensajeExitoGestionInsumos() }}
+        </div>
+      }
+
+      <div class="tabla-gestion-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Insumo</th>
+              <th>Unidad</th>
+              <th>Stock sugerido</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (insumo of insumos(); track insumo.id_insumo) {
+              <tr>
+                <td>{{ insumo.id_insumo }}</td>
+                <td>{{ insumo.nombre_insumo }}</td>
+                <td>{{ insumo.unidad_control }}</td>
+                <td>{{ formatearCantidad(insumo.stock_sugerido_inicial) }}</td>
+                <td>
+                  <span
+                    class="badge-estado"
+                    [class.activo]="insumo.activo === 'S'"
+                    [class.inactivo]="insumo.activo !== 'S'"
+                  >
+                    {{ insumo.activo === 'S' ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="acciones-tabla">
+                    <button type="button" class="btn-tabla" (click)="editarInsumo(insumo)">
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn-tabla"
+                      [class.btn-peligro]="insumo.activo === 'S'"
+                      (click)="cambiarEstadoInsumo(insumo)"
+                      [disabled]="actualizandoInsumo()"
+                    >
+                      {{ insumo.activo === 'S' ? 'Desactivar' : 'Reactivar' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (idInsumoEditando) {
+        <div class="panel-edicion-insumo">
+          <h3>Editar insumo #{{ idInsumoEditando }}</h3>
+
+          <div class="grid-dos-columnas">
+            <div class="campo-formulario">
+              <label for="editarNombreInsumo">Nombre insumo *</label>
+              <input
+                id="editarNombreInsumo"
+                type="text"
+                [(ngModel)]="formularioEditarInsumo.nombre_insumo"
+              />
+            </div>
+
+            <div class="campo-formulario">
+              <label for="editarUnidadControl">Unidad control *</label>
+              <input
+                id="editarUnidadControl"
+                type="text"
+                [(ngModel)]="formularioEditarInsumo.unidad_control"
+              />
+            </div>
+          </div>
+
+          <div class="grid-dos-columnas">
+            <div class="campo-formulario">
+              <label for="editarStockInicial">Stock sugerido inicial *</label>
+              <input
+                id="editarStockInicial"
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="formularioEditarInsumo.stock_sugerido_inicial"
+              />
+            </div>
+
+            <div class="campo-formulario">
+              <label for="editarActivoInsumo">Activo *</label>
+              <select id="editarActivoInsumo" [(ngModel)]="formularioEditarInsumo.activo">
+                <option value="S">Sí</option>
+                <option value="N">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="acciones-edicion">
+            <button type="button" class="btn-secundario" (click)="cancelarEdicionInsumo()">
+              Cancelar edición
+            </button>
+
+            <button
+              type="button"
+              class="btn-principal"
+              (click)="guardarEdicionInsumo()"
+              [disabled]="actualizandoInsumo()"
+            >
+              {{ actualizandoInsumo() ? 'Guardando...' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-secundario" (click)="cerrarGestionInsumos()">
+        Cerrar
+      </button>
+    </div>
+  </section>
+}

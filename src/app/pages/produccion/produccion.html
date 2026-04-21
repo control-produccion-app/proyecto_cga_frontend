@@ -1,84 +1,369 @@
-<div class="encabezado-pagina">
-  <h1>Producción</h1>
-  <p>Registro de producción diaria por jornada, turno y tipo de producción</p>
-</div>
+<section class="produccion-page">
+  <div class="encabezado">
+    <div>
+      <h1>Producción</h1>
+      <p>Registro de producción diaria por jornada, turno y tipo de producción.</p>
+    </div>
 
-<div class="fila-acciones">
-  <input
-    class="campo"
-    type="text"
-    placeholder="Buscar por tipo de producción..."
-  />
+    <div class="acciones-encabezado">
+      <button class="btn-secundario" type="button" (click)="abrirGestionTipos()">
+        Gestionar tipos
+      </button>
 
-  <select class="campo selector-turno">
-    <option>Todos los turnos</option>
-    <option>Madrugada</option>
-    <option>Mañana</option>
-    <option>Tarde</option>
-  </select>
-
-  <button class="boton-primario">+ Nuevo registro</button>
-</div>
-
-<div class="tarjetas-resumen-produccion">
-  <div class="tarjeta-resumen">
-    <span>Total producido hoy</span>
-    <strong>12,75 quintales</strong>
+      <button class="btn-principal" type="button" (click)="abrirModalProduccion()">
+        + Nuevo registro
+      </button>
+    </div>
   </div>
 
-  <div class="tarjeta-resumen">
-    <span>Turno con mayor producción</span>
-    <strong>Mañana</strong>
+  @if (mensajeError()) {
+    <div class="alerta alerta-error">
+      {{ mensajeError() }}
+    </div>
+  }
+
+  @if (mensajeExito()) {
+    <div class="alerta alerta-exito">
+      {{ mensajeExito() }}
+    </div>
+  }
+
+  <div class="panel-filtros">
+    <div class="campo-filtro">
+      <label for="busquedaProduccion">Buscar tipo de producción</label>
+      <input
+        id="busquedaProduccion"
+        type="text"
+        [(ngModel)]="textoBusqueda"
+        placeholder="Ej: integral"
+      />
+    </div>
+
+    <div class="campo-filtro">
+      <label for="turnoFiltro">Turno</label>
+      <select id="turnoFiltro" [(ngModel)]="turnoSeleccionado">
+        <option value="">Todos los turnos</option>
+        @for (turno of turnosFormulario; track turno.id_turno) {
+          <option [value]="turno.nombre_turno">
+            {{ turno.nombre_turno }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="acciones-filtros">
+      <button type="button" class="btn-secundario" (click)="limpiarFiltros()">
+        Limpiar filtros
+      </button>
+    </div>
   </div>
 
-  <div class="tarjeta-resumen">
-    <span>Tipos registrados</span>
-    <strong>3</strong>
+  <div class="resumen-grid">
+    <article class="tarjeta-resumen">
+      <span class="etiqueta">Registros cargados</span>
+      <strong>{{ producciones().length }}</strong>
+    </article>
+
+    <article class="tarjeta-resumen">
+      <span class="etiqueta">Registros visibles</span>
+      <strong>{{ produccionesFiltradas.length }}</strong>
+    </article>
+
+    <article class="tarjeta-resumen">
+      <span class="etiqueta">Tipos de producción</span>
+      <strong>{{ tiposProduccion().length }}</strong>
+    </article>
   </div>
-</div>
 
-<table class="tabla">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Fecha</th>
-      <th>Turno</th>
-      <th>Tipo de producción</th>
-      <th>Quintales</th>
-    </tr>
-  </thead>
+  <div class="tabla-wrapper">
+    @if (cargando()) {
+      <div class="estado-tabla">Cargando registros de producción...</div>
+    } @else if (produccionesFiltradas.length === 0) {
+      <div class="estado-tabla">No hay registros para los filtros seleccionados.</div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Turno</th>
+            <th>Tipo de producción</th>
+            <th>Quintales</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (produccion of produccionesFiltradas; track produccion.id_produccion) {
+            <tr>
+              <td>{{ produccion.id_produccion }}</td>
+              <td>{{ formatearFecha(produccion.jornada_fecha) }}</td>
+              <td>{{ produccion.turno_nombre }}</td>
+              <td>{{ produccion.tipo_produccion_nombre }}</td>
+              <td>{{ formatearQuintales(produccion.quintales) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</section>
 
-  <tbody>
-    <tr>
-      <td>1</td>
-      <td>13-04-2026</td>
-      <td>Madrugada</td>
-      <td>Pan corriente</td>
-      <td>4,50</td>
-    </tr>
+@if (modalProduccionAbierto) {
+  <div class="modal-backdrop" (click)="cerrarModalProduccion()"></div>
 
-    <tr>
-      <td>2</td>
-      <td>13-04-2026</td>
-      <td>Mañana</td>
-      <td>Pan corriente</td>
-      <td>5,25</td>
-    </tr>
+  <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="tituloModalProduccion">
+    <div class="modal-header">
+      <div>
+        <h2 id="tituloModalProduccion">Nuevo registro de producción</h2>
+        <p>Registra producción por fecha, turno, tipo y quintales.</p>
+      </div>
 
-    <tr>
-      <td>3</td>
-      <td>13-04-2026</td>
-      <td>Tarde</td>
-      <td>Pan integral</td>
-      <td>2,00</td>
-    </tr>
+      <button type="button" class="btn-cerrar" (click)="cerrarModalProduccion()">×</button>
+    </div>
 
-    <tr>
-      <td>4</td>
-      <td>13-04-2026</td>
-      <td>Tarde</td>
-      <td>Pan especial</td>
-      <td>1,00</td>
-    </tr>
-  </tbody>
-</table>
+    <div class="modal-body">
+      <div class="grid-dos-columnas">
+        <div class="campo-formulario">
+          <label for="fechaProduccion">Fecha producción *</label>
+          <input
+            id="fechaProduccion"
+            type="date"
+            [(ngModel)]="formularioProduccion.fecha_produccion"
+          />
+        </div>
+
+        <div class="campo-formulario">
+          <label for="turnoProduccion">Turno *</label>
+          <select id="turnoProduccion" [(ngModel)]="formularioProduccion.id_turno">
+            <option [ngValue]="0">Seleccione un turno</option>
+            @for (turno of turnosFormulario; track turno.id_turno) {
+              <option [ngValue]="turno.id_turno">
+                {{ turno.nombre_turno }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="campo-formulario tipo-con-accion">
+        <label for="tipoProduccion">Tipo de producción *</label>
+
+        <div class="fila-tipo">
+          <select id="tipoProduccion" [(ngModel)]="formularioProduccion.id_tipo_produccion">
+            <option [ngValue]="0">Seleccione un tipo</option>
+            @for (tipo of tiposProduccion(); track tipo.id_tipo_produccion) {
+              <option [ngValue]="tipo.id_tipo_produccion">
+                {{ tipo.nombre_tipo_produccion }}
+              </option>
+            }
+          </select>
+
+          <button type="button" class="btn-secundario" (click)="abrirModalTipo()">
+            + Nuevo tipo
+          </button>
+        </div>
+      </div>
+
+      <div class="campo-formulario">
+        <label for="quintalesProduccion">Quintales *</label>
+        <input
+          id="quintalesProduccion"
+          type="number"
+          min="0"
+          step="0.01"
+          [(ngModel)]="formularioProduccion.quintales"
+          placeholder="Ej: 6.25"
+        />
+      </div>
+
+      @if (mensajeError()) {
+        <div class="alerta alerta-error espacio-modal">
+          {{ mensajeError() }}
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-secundario" (click)="cerrarModalProduccion()">
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn-principal"
+        (click)="guardarProduccion()"
+        [disabled]="guardandoProduccion()"
+      >
+        {{ guardandoProduccion() ? 'Guardando...' : 'Guardar registro' }}
+      </button>
+    </div>
+  </section>
+}
+
+@if (modalTipoAbierto) {
+  <div class="modal-backdrop modal-backdrop-secundario"></div>
+
+  <section class="modal-panel modal-panel-secundario" role="dialog" aria-modal="true" aria-labelledby="tituloModalTipo">
+    <div class="modal-header">
+      <div>
+        <h2 id="tituloModalTipo">Nuevo tipo de producción</h2>
+        <p>Crea un tipo y déjalo disponible para nuevos registros.</p>
+      </div>
+
+      <button type="button" class="btn-cerrar" (click)="cerrarModalTipo()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="campo-formulario">
+        <label for="nombreTipoProduccion">Nombre tipo *</label>
+        <input
+          id="nombreTipoProduccion"
+          type="text"
+          [(ngModel)]="formularioTipo.nombre_tipo_produccion"
+          placeholder="Ej: Masa dulce"
+        />
+      </div>
+
+      <div class="campo-formulario">
+        <label for="insumoPrincipal">Insumo principal</label>
+        <select id="insumoPrincipal" [(ngModel)]="formularioTipo.id_insumo_principal">
+          <option [ngValue]="null">Sin insumo principal</option>
+          @for (insumo of insumosActivos; track insumo.id_insumo) {
+            <option [ngValue]="insumo.id_insumo">
+              {{ insumo.nombre_insumo }} ({{ insumo.unidad_control }})
+            </option>
+          }
+        </select>
+      </div>
+
+      @if (mensajeErrorTipo()) {
+        <div class="alerta alerta-error espacio-modal">
+          {{ mensajeErrorTipo() }}
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-secundario" (click)="cerrarModalTipo()">
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn-principal"
+        (click)="guardarTipoProduccion()"
+        [disabled]="guardandoTipo()"
+      >
+        {{ guardandoTipo() ? 'Guardando...' : 'Guardar tipo' }}
+      </button>
+    </div>
+  </section>
+}
+
+@if (modalGestionTiposAbierto) {
+  <div class="modal-backdrop" (click)="cerrarGestionTipos()"></div>
+
+  <section class="modal-panel modal-panel-gestion" role="dialog" aria-modal="true" aria-labelledby="tituloGestionTipos">
+    <div class="modal-header">
+      <div>
+        <h2 id="tituloGestionTipos">Gestionar tipos de producción</h2>
+        <p>Edita nombres o cambia el insumo principal sin borrar historial.</p>
+      </div>
+
+      <button type="button" class="btn-cerrar" (click)="cerrarGestionTipos()">×</button>
+    </div>
+
+    <div class="modal-body">
+      @if (mensajeErrorGestionTipos()) {
+        <div class="alerta alerta-error">
+          {{ mensajeErrorGestionTipos() }}
+        </div>
+      }
+
+      @if (mensajeExitoGestionTipos()) {
+        <div class="alerta alerta-exito">
+          {{ mensajeExitoGestionTipos() }}
+        </div>
+      }
+
+      <div class="tabla-gestion-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tipo de producción</th>
+              <th>Insumo principal</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tipo of tiposProduccion(); track tipo.id_tipo_produccion) {
+              <tr>
+                <td>{{ tipo.id_tipo_produccion }}</td>
+                <td>{{ tipo.nombre_tipo_produccion }}</td>
+                <td>{{ obtenerNombreInsumoPrincipal(tipo) }}</td>
+                <td>
+                  <button type="button" class="btn-tabla" (click)="editarTipo(tipo)">
+                    Editar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (idTipoEditando) {
+        <div class="panel-edicion-tipo">
+          <h3>Editar tipo #{{ idTipoEditando }}</h3>
+
+          <div class="grid-dos-columnas">
+            <div class="campo-formulario">
+              <label for="editarNombreTipo">Nombre tipo *</label>
+              <input
+                id="editarNombreTipo"
+                type="text"
+                [(ngModel)]="formularioEditarTipo.nombre_tipo_produccion"
+              />
+            </div>
+
+            <div class="campo-formulario">
+              <label for="editarInsumoPrincipal">Insumo principal</label>
+              <select
+                id="editarInsumoPrincipal"
+                [(ngModel)]="formularioEditarTipo.id_insumo_principal"
+              >
+                <option [ngValue]="null">Sin insumo principal</option>
+                @for (insumo of insumosActivos; track insumo.id_insumo) {
+                  <option [ngValue]="insumo.id_insumo">
+                    {{ insumo.nombre_insumo }} ({{ insumo.unidad_control }})
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="acciones-edicion">
+            <button type="button" class="btn-secundario" (click)="cancelarEdicionTipo()">
+              Cancelar edición
+            </button>
+
+            <button
+              type="button"
+              class="btn-principal"
+              (click)="guardarEdicionTipo()"
+              [disabled]="actualizandoTipo()"
+            >
+              {{ actualizandoTipo() ? 'Guardando...' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-secundario" (click)="cerrarGestionTipos()">
+        Cerrar
+      </button>
+    </div>
+  </section>
+}

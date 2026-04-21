@@ -5,7 +5,7 @@ import { adminGuard, authGuard, authChildGuard } from './core/guards/auth.guard'
 import { Login } from './pages/login/login';
 import { Dashboard } from './pages/dashboard/dashboard';
 import { Produccion } from './pages/produccion/produccion';
-import { Bodega } from './pages/bodega/bodega';
+import { BodegaComponent } from './pages/bodega/bodega';
 import { PedidosDespacho } from './pages/pedidos-despacho/pedidos-despacho';
 import { PagosCobros } from './pages/pagos-cobros/pagos-cobros';
 import { ClientesSaldos } from './pages/clientes-saldos/clientes-saldos';
@@ -41,7 +41,7 @@ export const routes: Routes = [
       },
       {
         path: 'bodega',
-        component: Bodega
+        component: BodegaComponent
       },
       {
         path: 'pedidos-despacho',

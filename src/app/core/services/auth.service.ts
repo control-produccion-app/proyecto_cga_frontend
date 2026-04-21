@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, switchMap, tap } from 'rxjs';
 
 import { API_CONFIG } from '../config/api.config';
@@ -41,13 +41,7 @@ export class AuthService {
   }
 
   obtenerUsuarioActual(): Observable<UsuarioActual> {
-    const token = this.obtenerAccessToken();
-
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`
-    });
-
-    return this.http.get<UsuarioActual>(`${this.apiUrl}/api/me/`, { headers });
+    return this.http.get<UsuarioActual>(`${this.apiUrl}/api/me/`);
   }
 
   obtenerAccessToken(): string | null {

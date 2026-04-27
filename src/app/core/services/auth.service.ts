@@ -9,6 +9,12 @@ export interface TokensJwt {
   refresh: string;
 }
 
+export interface InicioSesion2FAResponse {
+  session_id: string;
+  message: string;
+  expires_in: number;
+}
+
 export interface UsuarioActual {
   id: number;
   username: string;
@@ -38,6 +44,20 @@ export class AuthService {
         sessionStorage.setItem('usuario_actual', JSON.stringify(usuario));
       })
     );
+  }
+
+  iniciarSesion2FA(username: string, password: string): Observable<InicioSesion2FAResponse> {
+    return this.http.post<InicioSesion2FAResponse>(`${this.apiUrl}/api/token/2fa/`, {
+      username,
+      password
+    });
+  }
+
+  verificarCodigo2FA(session_id: string, code: string): Observable<TokensJwt> {
+    return this.http.post<TokensJwt>(`${this.apiUrl}/api/token/2fa/verify/`, {
+      session_id,
+      code
+    });
   }
 
   obtenerUsuarioActual(): Observable<UsuarioActual> {

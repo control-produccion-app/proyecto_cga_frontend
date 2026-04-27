@@ -1,4 +1,4 @@
-<section class="contenedor-control-turno">
+﻿<section class="contenedor-control-turno">
 
   <header class="encabezado-operativo">
     <div>
@@ -77,8 +77,9 @@
       <button
         type="button"
         class="boton-secundario"
+        *ngIf="estadoVisual === 'INGRESANDO'"
         (click)="descartarPlanillaLocal()"
-        [disabled]="estadoVisual !== 'INGRESANDO' || cargandoCierre">
+        [disabled]="cargandoCierre">
         Descartar planilla
       </button>
     </div>
@@ -100,6 +101,7 @@
         <button
           type="button"
           class="boton-secundario"
+          *ngIf="estadoVisual === 'INGRESANDO'"
           (click)="agregarFilas()"
           [disabled]="!planillaHabilitada()">
           + Agregar filas
@@ -118,7 +120,7 @@
         Este turno no está disponible para ingreso desde esta pantalla.
       </div>
 
-      <div class="tabla-planilla" *ngIf="!cargando">
+      <div class="tabla-planilla" *ngIf="!cargando && estadoVisual === 'INGRESANDO'">
         <table>
           <thead>
             <tr>
@@ -198,12 +200,12 @@
         </table>
       </div>
 
-      <p class="nota-planilla">
+      <p class="nota-planilla" *ngIf="estadoVisual === 'INGRESANDO'">
         Esta planilla no afecta ventas, cobros ni saldos. Solo registra datos operativos para el rinde del turno.
       </p>
     </div>
 
-    <aside class="tarjeta resumen-turno">
+    <aside class="tarjeta resumen-turno" *ngIf="estadoVisual === 'INGRESANDO' || estadoVisual === 'FINALIZADO'">
       <div class="titulo-resumen">
         <h2>Resumen del turno</h2>
         <p>Control rápido para rinde y totales operativos.</p>

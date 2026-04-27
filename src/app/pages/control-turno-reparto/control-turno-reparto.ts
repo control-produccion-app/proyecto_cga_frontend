@@ -478,6 +478,7 @@ export class ControlTurnoReparto implements OnInit {
       const payloadCierre: CierreTurnoPayload = {
         id_jornada: this.jornadaSeleccionada,
         id_turno: this.turnoSeleccionado,
+        quintales_cocidos: this.convertirNumero(this.quintalesTurno),
         mostrador_kg: this.convertirNumero(this.formulario.mostrador_kg),
         raciones_kg: this.convertirNumero(this.formulario.raciones_kg),
         ajuste_por_error_kg: this.convertirNumero(this.formulario.ajuste_por_error_kg),
@@ -768,11 +769,11 @@ export class ControlTurnoReparto implements OnInit {
   }
 
   trackByCliente(_: number, cliente: Cliente): number {
-    return this.obtenerIdCliente(cliente);
+    return Number(cliente.id_cliente || cliente.id || 0);
   }
 
   trackByDistribucion(_: number, distribucion: Distribucion): number {
-    return this.obtenerIdDistribucion(distribucion);
+    return Number(distribucion.id_distribucion || distribucion.id || 0);
   }
 
   trackByFilaIngreso(indice: number): number {

@@ -72,6 +72,7 @@ export interface CierreTurno {
 export interface CierreTurnoPayload {
   id_jornada: number;
   id_turno: number;
+  quintales_cocidos: number;
   mostrador_kg: number;
   raciones_kg: number;
   ajuste_por_error_kg: number;

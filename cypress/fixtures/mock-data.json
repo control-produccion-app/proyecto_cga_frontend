@@ -1,0 +1,63 @@
+{
+  "turnos": [
+    { "id_turno": 1, "nombre_turno": "Madrugada" },
+    { "id_turno": 2, "nombre_turno": "Mañana" },
+    { "id_turno": 3, "nombre_turno": "Tarde" }
+  ],
+  "distribuciones": [
+    { "id_distribucion": 1, "nombre_distribucion": "Ricardo" },
+    { "id_distribucion": 2, "nombre_distribucion": "Osvaldo" },
+    { "id_distribucion": 3, "nombre_distribucion": "Retiro Panaderia" }
+  ],
+  "insumos": [
+    { "id_insumo": 1, "nombre_insumo": "Harina", "unidad_control": "kg", "stock_sugerido_inicial": 1000, "activo": "S" },
+    { "id_insumo": 2, "nombre_insumo": "Azúcar", "unidad_control": "kg", "stock_sugerido_inicial": 200, "activo": "S" },
+    { "id_insumo": 3, "nombre_insumo": "Levadura", "unidad_control": "kg", "stock_sugerido_inicial": 50, "activo": "S" }
+  ],
+  "tipos-produccion": [
+    { "id_tipo_produccion": 1, "nombre_tipo_produccion": "Pan corriente", "id_insumo_principal": 1 },
+    { "id_tipo_produccion": 2, "nombre_tipo_produccion": "Pan integral", "id_insumo_principal": 1 },
+    { "id_tipo_produccion": 3, "nombre_tipo_produccion": "Pan dulce", "id_insumo_principal": 1 }
+  ],
+  "jornadas": [
+    { "id_jornada": 1, "fecha": "2026-04-27" },
+    { "id_jornada": 2, "fecha": "2026-04-26" }
+  ],
+  "producciones": [
+    { "id_produccion": 1, "id_jornada": 1, "id_tipo_produccion": 1, "id_turno": 1, "quintales": 25.5 },
+    { "id_produccion": 2, "id_jornada": 1, "id_tipo_produccion": 2, "id_turno": 2, "quintales": 15.0 }
+  ],
+  "movimientos-bodega": [
+    { "id_movimiento_bodega": 1, "id_insumo": 1, "fecha_movimiento": "2026-04-27", "tipo_movimiento": "ENTRADA", "cantidad": 500, "id_jornada": 1 },
+    { "id_movimiento_bodega": 2, "id_insumo": 1, "fecha_movimiento": "2026-04-26", "tipo_movimiento": "SALIDA", "cantidad": 100, "id_jornada": 1 }
+  ],
+  "conteos-bodega": [
+    { "id_conteo_bodega": 1, "id_insumo": 1, "fecha_conteo": "2026-04-27", "cantidad_fisica": 950, "id_turno": 1 }
+  ],
+  "clientes": [
+    { "id_cliente": 1, "rut": 12345678, "digito_verificador": "9", "nombre_cliente": "Supermercado Los Andes", "ciudad": "Santiago", "direccion": "Av. Principal 123", "descuento_aplicado": 5 },
+    { "id_cliente": 2, "rut": 87654321, "digito_verificador": "0", "nombre_cliente": "Restaurante La Familia", "ciudad": "Santiago", "direccion": "Calle Secundaria 456", "descuento_aplicado": 10 }
+  ],
+  "productos": [
+    { "id_producto": 1, "nombre_producto": "Pan corriente 1kg", "precio_sugerido": 2500, "unidad_venta_base": "KILO", "id_tipo_produccion": 1 },
+    { "id_producto": 2, "nombre_producto": "Medialunas", "precio_sugerido": 300, "unidad_venta_base": "UNIDAD", "id_tipo_produccion": 3 }
+  ],
+  "pedidos": [
+    { "id_pedido": 1, "id_cliente": 1, "id_distribucion": 1, "fecha_pedido": "2026-04-27", "fecha_entrega_solicitada": "2026-04-28" }
+  ],
+  "detalles-pedido": [
+    { "id_detalle_pedido": 1, "id_pedido": 1, "id_producto": 1, "cantidad_solicitada": 50, "unidad_medida": "KILO", "precio_cobrado": 2375, "descuento_porcentaje_aplicado": 5 }
+  ],
+  "detalle-movimiento": [
+    { "id_detalle": 1, "id_jornada": 1, "id_cliente": 1, "id_producto": 1, "precio_cobrado": 2375, "cantidad_entregada": 50, "unidad_medida": "KILO", "cancelacion": 50000 },
+    { "id_detalle": 2, "id_jornada": 1, "id_cliente": 2, "id_producto": 2, "precio_cobrado": 300, "cantidad_entregada": 100, "unidad_medida": "UNIDAD", "cancelacion": null }
+  ],
+  "reportes": {
+    "stock_insumo": {
+      "insumo_id": 1, "stock_teorico": 400, "ultimo_conteo": 395, "fecha_ultimo_conteo": "2026-04-27", "diferencia": 5
+    },
+    "resumen_jornada": [
+      { "id_cliente": 1, "id_cliente__nombre_cliente": "Supermercado Los Andes", "total_venta": 118750, "total_pago": 50000, "saldo_dia": 68750 }
+    ]
+  }
+}

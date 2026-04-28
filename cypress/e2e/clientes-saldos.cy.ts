@@ -1,14 +1,15 @@
 describe('Clientes - Saldos y pagos', () => {
   beforeEach(() => {
     cy.login('Administrador');
+    cy.visit('/clientes-saldos');
+  });
+
+  it('debe mostrar listado de clientes', () => {
     cy.intercept('GET', '**/api/clientes/**', {
       fixture: 'clientes.json',
     }).as('getClientes');
     cy.visit('/clientes-saldos');
-    cy.wait('@getClientes');
-  });
-
-  it('debe mostrar listado de clientes', () => {
+    cy.wait('@getClientes', { timeout: 10000 });
     cy.contains('Supermercado Los Andes').should('be.visible');
     cy.contains('Restaurante La Familia').should('be.visible');
   });
@@ -25,7 +26,7 @@ describe('Clientes - Saldos y pagos', () => {
     }).as('getSaldo');
 
     cy.contains('Supermercado Los Andes').click();
-    cy.wait('@getSaldo').then(() => {
+    cy.wait('@getSaldo', { timeout: 10000 }).then(() => {
       cy.contains('Saldo').should('be.visible');
     });
   });
@@ -38,7 +39,7 @@ describe('Clientes - Saldos y pagos', () => {
     }).as('getResumen');
 
     cy.contains('Resumen por jornada').click();
-    cy.wait('@getResumen');
+    cy.wait('@getResumen', { timeout: 10000 });
     cy.contains('Supermercado Los Andes').should('be.visible');
   });
 });

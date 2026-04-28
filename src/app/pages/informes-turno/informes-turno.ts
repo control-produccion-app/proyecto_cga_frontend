@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '../../core/services/auth.service';
 import { CierreTurnoService } from '../../features/control-turno-reparto/services/cierre-turno.service';
+import { RepartoTurno } from '../../features/control-turno-reparto/interfaces/cierre-turno.interface';
 
-interface RespuestaInformes {
-  value?: InformeTurno[];
-  results?: InformeTurno[];
+interface RespuestaLista<T> {
+  value?: T[];
+  results?: T[];
   count?: number;
   Count?: number;
 }
@@ -57,7 +58,11 @@ export class InformesTurno implements OnInit {
   informes: InformeTurno[] = [];
   informesFiltrados: InformeTurno[] = [];
 
+  repartos: RepartoTurno[] = [];
+  repartosDetalle: RepartoTurno[] = [];
+
   cargando = false;
+  cargandoRepartos = false;
   mensajeError = '';
 
   filtroFechaDesde = '';
@@ -69,6 +74,7 @@ export class InformesTurno implements OnInit {
 
   ngOnInit(): void {
     this.cargarInformes();
+    this.cargarRepartos();
   }
 
   cargarInformes(): void {
@@ -77,9 +83,13 @@ export class InformesTurno implements OnInit {
 
     this.cierreTurnoService.obtenerCierres().subscribe({
       next: (respuesta) => {
-        this.informes = this.normalizarRespuesta(respuesta as unknown as RespuestaInformes | InformeTurno[]);
+        this.informes = this.normalizarLista(respuesta as unknown as RespuestaLista<InformeTurno> | InformeTurno[]);
         this.informesFiltrados = [...this.informes];
         this.cargando = false;
+
+        if (this.informeSeleccionado) {
+          this.actualizarRepartosDetalle();
+        }
       },
       error: () => {
         this.mensajeError = 'No fue posible cargar los informes de turno.';
@@ -88,7 +98,27 @@ export class InformesTurno implements OnInit {
     });
   }
 
-  private normalizarRespuesta(respuesta: RespuestaInformes | InformeTurno[]): InformeTurno[] {
+  cargarRepartos(): void {
+    this.cargandoRepartos = true;
+
+    this.cierreTurnoService.obtenerRepartosTurno().subscribe({
+      next: (respuesta) => {
+        this.repartos = this.normalizarLista(respuesta as unknown as RespuestaLista<RepartoTurno> | RepartoTurno[]);
+        this.cargandoRepartos = false;
+
+        if (this.informeSeleccionado) {
+          this.actualizarRepartosDetalle();
+        }
+      },
+      error: () => {
+        this.repartos = [];
+        this.repartosDetalle = [];
+        this.cargandoRepartos = false;
+      }
+    });
+  }
+
+  private normalizarLista<T>(respuesta: RespuestaLista<T> | T[]): T[] {
     if (Array.isArray(respuesta)) {
       return respuesta;
     }
@@ -123,6 +153,7 @@ export class InformesTurno implements OnInit {
       !this.informesFiltrados.some((informe) => this.obtenerIdInforme(informe) === this.obtenerIdInforme(this.informeSeleccionado!))
     ) {
       this.informeSeleccionado = null;
+      this.repartosDetalle = [];
     }
   }
 
@@ -133,14 +164,31 @@ export class InformesTurno implements OnInit {
     this.filtroEstado = '';
     this.informesFiltrados = [...this.informes];
     this.informeSeleccionado = null;
+    this.repartosDetalle = [];
   }
 
   seleccionarInforme(informe: InformeTurno): void {
     this.informeSeleccionado = informe;
+    this.actualizarRepartosDetalle();
   }
 
   cerrarDetalle(): void {
     this.informeSeleccionado = null;
+    this.repartosDetalle = [];
+  }
+
+  actualizarRepartosDetalle(): void {
+    if (!this.informeSeleccionado) {
+      this.repartosDetalle = [];
+      return;
+    }
+
+    const idJornada = Number(this.informeSeleccionado.id_jornada ?? 0);
+    const idTurno = Number(this.informeSeleccionado.id_turno ?? 0);
+
+    this.repartosDetalle = this.repartos.filter((reparto) => {
+      return Number(reparto.id_jornada) === idJornada && Number(reparto.id_turno) === idTurno;
+    });
   }
 
   obtenerTurnosDisponibles(): string[] {
@@ -165,6 +213,14 @@ export class InformesTurno implements OnInit {
 
   obtenerEstadoInforme(informe: InformeTurno): string {
     return String(informe.estado ?? 'SIN_ESTADO');
+  }
+
+  obtenerNombreCliente(reparto: RepartoTurno): string {
+    return reparto.cliente_nombre || `Cliente #${reparto.id_cliente}`;
+  }
+
+  obtenerNombreDistribucion(reparto: RepartoTurno): string {
+    return reparto.distribucion_nombre || `Distribución #${reparto.id_distribucion}`;
   }
 
   formatearFecha(valor?: string | null): string {
@@ -253,5 +309,9 @@ export class InformesTurno implements OnInit {
 
   trackByInforme(_: number, informe: InformeTurno): number {
     return this.obtenerIdInforme(informe);
+  }
+
+  trackByReparto(_: number, reparto: RepartoTurno): number {
+    return Number(reparto.id_detalle_reparto_turno ?? reparto.id ?? 0);
   }
 }

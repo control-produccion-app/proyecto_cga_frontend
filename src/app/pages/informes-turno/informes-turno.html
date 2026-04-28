@@ -282,6 +282,55 @@
         </div>
       </div>
 
+      <section class="bloque-entregas">
+        <div class="encabezado-entregas">
+          <div>
+            <span class="etiqueta-seccion">Detalle operativo</span>
+            <h3>Entregas registradas del turno</h3>
+          </div>
+
+          <span>{{ repartosDetalle.length }} entrega(s)</span>
+        </div>
+
+        @if (cargandoRepartos) {
+          <p class="mensaje-carga">
+            Cargando entregas registradas...
+          </p>
+        }
+
+        @if (!cargandoRepartos && repartosDetalle.length === 0) {
+          <div class="sin-datos">
+            No hay entregas registradas para este informe.
+          </div>
+        }
+
+        @if (!cargandoRepartos && repartosDetalle.length > 0) {
+          <div class="tabla-entregas">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Repartidor / distribución</th>
+                  <th>Cantidad</th>
+                  <th>Unidad</th>
+                  <th>Observación</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let reparto of repartosDetalle; trackBy: trackByReparto">
+                  <td>{{ obtenerNombreCliente(reparto) }}</td>
+                  <td>{{ obtenerNombreDistribucion(reparto) }}</td>
+                  <td>{{ formatearNumero(reparto.cantidad_entregada) }}</td>
+                  <td>{{ reparto.unidad_medida }}</td>
+                  <td>{{ reparto.observacion || 'Sin observación' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
       @if (esAdministrador()) {
         <p class="nota-seguridad">
           Vista de consulta administrativa. La corrección de informes queda pendiente hasta validar permisos de edición en backend.

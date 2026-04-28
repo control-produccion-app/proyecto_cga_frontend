@@ -45,7 +45,8 @@
 .panel-filtros,
 .tarjeta-informe,
 .panel-detalle,
-.encabezado-listado {
+.encabezado-listado,
+.bloque-entregas {
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
@@ -328,6 +329,60 @@ button {
   }
 }
 
+.bloque-entregas {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.encabezado-entregas {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+
+  h3 {
+    margin: 4px 0 0;
+    color: #111827;
+    font-size: 1.1rem;
+  }
+
+  span {
+    color: #475569;
+    font-weight: 800;
+  }
+}
+
+.tabla-entregas {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+}
+
+.tabla-entregas table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.tabla-entregas th,
+.tabla-entregas td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  color: #111827;
+}
+
+.tabla-entregas th {
+  background: #f8fafc;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.tabla-entregas tr:last-child td {
+  border-bottom: 0;
+}
+
 .nota-seguridad {
   margin: 14px 0 0;
   border-left: 4px solid #f97316;
@@ -357,7 +412,8 @@ button {
 @media (max-width: 640px) {
   .encabezado-pagina,
   .detalle-encabezado,
-  .informe-principal {
+  .informe-principal,
+  .encabezado-entregas {
     flex-direction: column;
   }
 

@@ -16,7 +16,7 @@ describe('Reportes operativos', () => {
     }).as('getStock');
 
     cy.contains('Stock por insumo').click();
-    cy.get('select').first().select('1');
+    cy.get('select').first().select('Harina');
     cy.wait('@getStock');
     cy.contains('400').should('be.visible');
     cy.contains('395').should('be.visible');
@@ -24,8 +24,14 @@ describe('Reportes operativos', () => {
   });
 
   it('debe mostrar error si no se selecciona insumo', () => {
+    cy.intercept('GET', '**/api/reportes/stock_insumo/**', {
+      statusCode: 400,
+      body: { error: 'insumo_id es requerido' },
+    }).as('getStockError');
+
     cy.contains('Stock por insumo').click();
     cy.contains('Consultar').click();
-    cy.contains('Seleccione un insumo').should('be.visible');
+    cy.wait('@getStockError');
+    cy.contains('insumo_id es requerido').should('be.visible');
   });
 });

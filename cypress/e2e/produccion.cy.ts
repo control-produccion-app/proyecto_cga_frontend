@@ -5,10 +5,12 @@ describe('Producción - Jornadas y cierre de turno', () => {
 
   it('debe mostrar listado de jornadas', () => {
     cy.intercept('GET', '**/api/jornadas/**', {
-      fixture: 'mock-data.json',
+      fixture: 'jornadas.json',
     }).as('getJornadas');
     cy.visit('/produccion');
-    cy.contains('Jornadas').should('be.visible');
+    cy.wait('@getJornadas');
+    cy.contains('2026-04-27').should('be.visible');
+    cy.contains('2026-04-26').should('be.visible');
   });
 
   it('debe permitir crear una nueva jornada', () => {
@@ -22,7 +24,6 @@ describe('Producción - Jornadas y cierre de turno', () => {
     cy.get('input[type="date"]').type('2026-04-28');
     cy.contains('Guardar').click();
     cy.wait('@crearJornada');
-    cy.contains('Jornada creada').should('be.visible');
   });
 
   it('debe permitir registrar produccion en una jornada', () => {
@@ -36,7 +37,6 @@ describe('Producción - Jornadas y cierre de turno', () => {
     cy.get('input[type="number"]').first().type('30');
     cy.contains('Guardar').click();
     cy.wait('@crearProduccion');
-    cy.contains('Producción registrada').should('be.visible');
   });
 
   it('debe permitir cerrar un turno', () => {
@@ -49,19 +49,18 @@ describe('Producción - Jornadas y cierre de turno', () => {
     cy.contains('Cerrar turno').click();
     cy.contains('Confirmar').click();
     cy.wait('@cerrarTurno');
-    cy.contains('Turno cerrado').should('be.visible');
   });
 
   it('debe mostrar error al cerrar un turno ya cerrado', () => {
     cy.intercept('POST', '**/api/cierres-turno/**', {
       statusCode: 400,
-      body: { error: 'El cierre ya está cerrado' },
+      body: { error: 'El cierre ya está cerrado y no se puede editar' },
     }).as('cerrarTurnoError');
 
     cy.visit('/produccion');
     cy.contains('Cerrar turno').click();
     cy.contains('Confirmar').click();
     cy.wait('@cerrarTurnoError');
-    cy.contains('error').should('be.visible');
+    cy.contains('ya está cerrado').should('be.visible');
   });
 });

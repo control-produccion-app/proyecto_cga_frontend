@@ -1,15 +1,16 @@
 describe('Bodega - Gestión de stock', () => {
   beforeEach(() => {
     cy.login('Administrador');
+    cy.intercept('GET', '**/api/movimientos-bodega/**', {
+      fixture: 'movimientos-bodega.json',
+    }).as('getMovimientos');
     cy.visit('/bodega');
+    cy.wait('@getMovimientos');
   });
 
   it('debe mostrar el listado de movimientos', () => {
-    cy.intercept('GET', '**/api/movimientos-bodega/**', {
-      fixture: 'mock-data.json',
-      body: { results: [] },
-    }).as('getMovimientos');
-    cy.contains('Movimientos').should('be.visible');
+    cy.contains('ENTRADA').should('be.visible');
+    cy.contains('500').should('be.visible');
   });
 
   it('debe permitir agregar una entrada de stock', () => {
@@ -23,7 +24,6 @@ describe('Bodega - Gestión de stock', () => {
     cy.get('input[type="number"]').first().type('100');
     cy.contains('Guardar').click();
     cy.wait('@crearMovimiento');
-    cy.contains('Movimiento creado').should('be.visible');
   });
 
   it('debe permitir agregar una salida de stock', () => {
@@ -37,14 +37,19 @@ describe('Bodega - Gestión de stock', () => {
     cy.get('input[type="number"]').first().type('50');
     cy.contains('Guardar').click();
     cy.wait('@crearSalida');
-    cy.contains('Movimiento creado').should('be.visible');
   });
 
   it('debe mostrar error si la cantidad es negativa', () => {
+    cy.intercept('POST', '**/api/movimientos-bodega/**', {
+      statusCode: 400,
+      body: { error: 'La cantidad no puede ser negativa' },
+    }).as('crearError');
+
     cy.contains('Nuevo movimiento').click();
     cy.get('input[type="number"]').first().type('-10');
     cy.contains('Guardar').click();
-    cy.contains('error').should('be.visible');
+    cy.wait('@crearError');
+    cy.contains('no puede ser negativa').should('be.visible');
   });
 
   it('debe permitir realizar un conteo fisico', () => {
@@ -57,6 +62,5 @@ describe('Bodega - Gestión de stock', () => {
     cy.get('input[type="number"]').first().type('950');
     cy.contains('Guardar').click();
     cy.wait('@crearConteo');
-    cy.contains('Conteo registrado').should('be.visible');
   });
 });

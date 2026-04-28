@@ -168,13 +168,22 @@ export class InformesTurno implements OnInit {
   }
 
   seleccionarInforme(informe: InformeTurno): void {
+    if (this.estaInformeSeleccionado(informe)) {
+      this.informeSeleccionado = null;
+      this.repartosDetalle = [];
+      return;
+    }
+
     this.informeSeleccionado = informe;
     this.actualizarRepartosDetalle();
   }
 
-  cerrarDetalle(): void {
-    this.informeSeleccionado = null;
-    this.repartosDetalle = [];
+  estaInformeSeleccionado(informe: InformeTurno): boolean {
+    if (!this.informeSeleccionado) {
+      return false;
+    }
+
+    return this.obtenerIdInforme(this.informeSeleccionado) === this.obtenerIdInforme(informe);
   }
 
   actualizarRepartosDetalle(): void {
@@ -189,6 +198,11 @@ export class InformesTurno implements OnInit {
     this.repartosDetalle = this.repartos.filter((reparto) => {
       return Number(reparto.id_jornada) === idJornada && Number(reparto.id_turno) === idTurno;
     });
+  }
+
+  cerrarDetalle(): void {
+    this.informeSeleccionado = null;
+    this.repartosDetalle = [];
   }
 
   obtenerTurnosDisponibles(): string[] {
@@ -305,10 +319,6 @@ export class InformesTurno implements OnInit {
 
   esAdministrador(): boolean {
     return this.authService.esAdministrador();
-  }
-
-  trackByInforme(_: number, informe: InformeTurno): number {
-    return this.obtenerIdInforme(informe);
   }
 
   trackByReparto(_: number, reparto: RepartoTurno): number {

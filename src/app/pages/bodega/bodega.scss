@@ -113,6 +113,44 @@
   align-items: end;
 }
 
+.stock-fecha {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: 16px;
+  box-shadow: var(--sombra-suave);
+  overflow: hidden;
+}
+
+.stock-fecha-header {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--color-borde);
+
+  h2 {
+    margin: 0;
+    color: var(--color-texto);
+    font-size: 1.15rem;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: var(--color-texto-suave);
+    font-size: 0.9rem;
+  }
+}
+
+.tabla-stock-wrapper {
+  overflow-x: auto;
+
+  table {
+    min-width: 520px;
+  }
+}
+
+.stock-cantidad {
+  font-weight: 700;
+  color: var(--color-texto);
+}
+
 .tabla-wrapper {
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
@@ -463,7 +501,6 @@ tbody {
 
 @media (max-width: 768px) {
 
-  /* Encabezado en columna */
   .encabezado {
     flex-direction: column;
     align-items: stretch;
@@ -481,13 +518,11 @@ tbody {
     }
   }
 
-  /* Resumen en 1 columna */
   .resumen-grid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
 
-  /* Filtros en 1 columna */
   .panel-filtros-bodega {
     grid-template-columns: 1fr;
   }
@@ -498,7 +533,15 @@ tbody {
     }
   }
 
-  /* Tabla principal con scroll horizontal */
+  .tabla-stock-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla-stock-wrapper table {
+    min-width: 420px;
+  }
+
   .tabla-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -509,7 +552,6 @@ tbody {
     min-width: 480px;
   }
 
-  /* Modales full width en móvil */
   .modal-panel {
     width: calc(100vw - 1.5rem);
     max-height: calc(100vh - 2rem);
@@ -523,7 +565,6 @@ tbody {
     max-height: calc(100vh - 2rem);
   }
 
-  /* Tabla gestión insumos con scroll */
   .tabla-gestion-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -533,12 +574,10 @@ tbody {
     min-width: 480px;
   }
 
-  /* Grid dos columnas a 1 columna */
   .grid-dos-columnas {
     grid-template-columns: 1fr;
   }
 
-  /* Fila insumo en columna */
   .fila-insumo {
     grid-template-columns: 1fr;
 
@@ -547,7 +586,6 @@ tbody {
     }
   }
 
-  /* Footer modal en columna */
   .modal-footer {
     flex-direction: column;
 
@@ -556,7 +594,6 @@ tbody {
     }
   }
 
-  /* Acciones edición en columna */
   .acciones-edicion {
     flex-direction: column;
 

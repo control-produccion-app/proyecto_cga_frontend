@@ -11,6 +11,13 @@ import {
   Turno
 } from '../../features/bodega/services/bodega.service';
 
+interface ResumenStockInsumo {
+  id_insumo: number;
+  nombre_insumo: string;
+  unidad_control: string;
+  stock_fecha: number;
+}
+
 @Component({
   selector: 'app-bodega',
   standalone: true,
@@ -119,6 +126,57 @@ export class BodegaComponent implements OnInit {
 
   get insumosActivos(): Insumo[] {
     return this.insumos().filter((insumo) => insumo.activo === 'S');
+  }
+
+  get fechaStockConsulta(): string {
+    return this.fechaSeleccionada || this.obtenerFechaHoy();
+  }
+
+  get resumenStockFecha(): ResumenStockInsumo[] {
+    const fechaCorte = this.fechaStockConsulta;
+    const texto = this.normalizarTexto(this.textoBusqueda.trim());
+
+    return this.insumosActivos
+      .filter((insumo) => {
+        return !texto || this.normalizarTexto(insumo.nombre_insumo).includes(texto);
+      })
+      .map((insumo) => {
+        const stockBase = this.normalizarNumero(insumo.stock_sugerido_inicial);
+
+        const totalMovimientos = this.movimientos()
+          .filter((movimiento) => {
+            return (
+              Number(movimiento.id_insumo) === Number(insumo.id_insumo) &&
+              movimiento.fecha_movimiento <= fechaCorte
+            );
+          })
+          .reduce((acumulado, movimiento) => {
+            const cantidad = this.normalizarNumero(movimiento.cantidad);
+            const tipo = movimiento.tipo_movimiento.toUpperCase();
+
+            if (tipo === 'ENTRADA') {
+              return acumulado + cantidad;
+            }
+
+            if (tipo === 'SALIDA') {
+              return acumulado - cantidad;
+            }
+
+            if (tipo === 'AJUSTE') {
+              return acumulado + cantidad;
+            }
+
+            return acumulado;
+          }, 0);
+
+        return {
+          id_insumo: insumo.id_insumo,
+          nombre_insumo: insumo.nombre_insumo,
+          unidad_control: insumo.unidad_control,
+          stock_fecha: stockBase + totalMovimientos
+        };
+      })
+      .sort((a, b) => a.nombre_insumo.localeCompare(b.nombre_insumo));
   }
 
   cargarDatosIniciales(): void {
@@ -482,6 +540,21 @@ export class BodegaComponent implements OnInit {
     });
   }
 
+  formatearStock(valor: string | number): string {
+    const numero = this.normalizarNumero(valor);
+
+    if (Number.isInteger(numero)) {
+      return numero.toLocaleString('es-CL', {
+        maximumFractionDigits: 0
+      });
+    }
+
+    return numero.toLocaleString('es-CL', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    });
+  }
+
   obtenerNombreTurno(turno: string | null): string {
     if (!turno) {
       return '-';
@@ -531,6 +604,15 @@ export class BodegaComponent implements OnInit {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase();
+  }
+
+  private normalizarNumero(valor: string | number | null | undefined): number {
+    if (valor === null || valor === undefined || valor === '') {
+      return 0;
+    }
+
+    const numero = Number(String(valor).replace(',', '.'));
+    return Number.isNaN(numero) ? 0 : numero;
   }
 
   private obtenerMensajeError(error: any, mensajeDefecto: string): string {

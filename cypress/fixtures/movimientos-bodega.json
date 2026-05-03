@@ -1,0 +1,4 @@
+[
+  { "id_movimiento_bodega": 1, "id_insumo": 1, "fecha_movimiento": "2026-04-27", "tipo_movimiento": "ENTRADA", "cantidad": 500 },
+  { "id_movimiento_bodega": 2, "id_insumo": 1, "fecha_movimiento": "2026-04-26", "tipo_movimiento": "SALIDA", "cantidad": 100 }
+]

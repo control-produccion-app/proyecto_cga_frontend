@@ -14,10 +14,11 @@
     <div class="login-content">
       <h2>Inicio de sesión</h2>
       <p class="login-subtitle">
-        Ingresa tus credenciales para acceder al sistema.
+        {{ paso2 ? 'Se envió un código de verificación a tu correo electrónico.' : 'Ingresa tus credenciales para acceder al sistema.' }}
       </p>
 
-      <form class="login-form" (ngSubmit)="iniciarSesion()">
+      <!-- Paso 1: Credenciales -->
+      <form *ngIf="!paso2" class="login-form" (ngSubmit)="iniciarSesion()">
 
         <label for="usuario">Usuario</label>
         <input
@@ -45,10 +46,33 @@
           {{ cargando ? 'Ingresando...' : 'Ingresar al sistema' }}
         </button>
 
-    </form>
+      </form>
 
-     <p class="login-note">
-        Acceso conectado al backend mediante autenticación JWT.
+      <!-- Paso 2: Código 2FA -->
+      <form *ngIf="paso2" class="login-form" (ngSubmit)="verificarCodigo()">
+
+        <label for="codigo">Código de verificación</label>
+        <input
+          id="codigo"
+          name="codigo"
+          type="text"
+          placeholder="Ingresa el código de 6 dígitos"
+          [(ngModel)]="codigo"
+          maxlength="6"
+        >
+
+        <p *ngIf="mensajeError" class="login-error">
+          {{ mensajeError }}
+        </p>
+
+        <button type="submit" class="login-button" [disabled]="cargando">
+          {{ cargando ? 'Verificando...' : 'Verificar e ingresar' }}
+        </button>
+
+      </form>
+
+      <p class="login-note">
+        Acceso conectado al backend mediante autenticación JWT con doble factor (2FA).
       </p>
     </div>
 

@@ -20,6 +20,9 @@ export class Login {
   password = '';
   mensajeError = '';
   cargando = false;
+  paso2 = false;
+  sessionId = '';
+  codigo = '';
 
   iniciarSesion(): void {
     this.mensajeError = '';
@@ -31,22 +34,57 @@ export class Login {
 
     this.cargando = true;
 
-    this.authService.iniciarSesion(this.usuario, this.password).subscribe({
-      next: (usuario) => {
+    this.authService.iniciarSesion2FA(this.usuario, this.password).subscribe({
+      next: (respuesta) => {
         this.cargando = false;
-
-        const esAdministrador = usuario.is_superuser || usuario.roles.includes('Administrador');
-
-        if (esAdministrador) {
-          this.router.navigate(['/dashboard']);
-          return;
-        }
-
-        this.router.navigate(['/produccion']);
+        this.paso2 = true;
+        this.sessionId = respuesta.session_id;
       },
       error: () => {
         this.cargando = false;
         this.mensajeError = 'Credenciales incorrectas o usuario inactivo.';
+      }
+    });
+  }
+
+  verificarCodigo(): void {
+    this.mensajeError = '';
+
+    if (!this.codigo) {
+      this.mensajeError = 'Debe ingresar el código de verificación.';
+      return;
+    }
+
+    this.cargando = true;
+
+    this.authService.verificarCodigo2FA(this.sessionId, this.codigo).subscribe({
+      next: (tokens) => {
+        sessionStorage.setItem('access_token', tokens.access);
+        sessionStorage.setItem('refresh_token', tokens.refresh);
+
+        this.authService.obtenerUsuarioActual().subscribe({
+          next: (usuario) => {
+            this.cargando = false;
+            sessionStorage.setItem('usuario_actual', JSON.stringify(usuario));
+
+            const esAdministrador = usuario.is_superuser || usuario.roles.includes('Administrador');
+
+            if (esAdministrador) {
+              this.router.navigate(['/dashboard']);
+              return;
+            }
+
+            this.router.navigate(['/produccion']);
+          },
+          error: () => {
+            this.cargando = false;
+            this.mensajeError = 'Error al obtener datos del usuario.';
+          }
+        });
+      },
+      error: () => {
+        this.cargando = false;
+        this.mensajeError = 'Código incorrecto o expirado.';
       }
     });
   }

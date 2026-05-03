@@ -40,3 +40,12 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+cepress/reports/
+cepress/videos/
+cepress/screenshots/
+
+# Cypress output
+cypress/reports/
+cypress/videos/
+cypress/screenshots/

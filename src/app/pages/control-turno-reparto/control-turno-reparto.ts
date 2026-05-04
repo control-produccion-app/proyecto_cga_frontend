@@ -11,6 +11,7 @@ import {
   Cliente,
   Distribucion,
   Jornada,
+  ProduccionTurno,
   RepartoTurno,
   RepartoTurnoPayload,
   RespuestaListaApi,
@@ -44,6 +45,7 @@ export class ControlTurnoReparto implements OnInit {
   distribuciones: Distribucion[] = [];
 
   repartosTurno: RepartoTurno[] = [];
+  produccionesTurno: ProduccionTurno[] = [];
 
   filasIngresoRapido: FilaIngresoRapido[] = [];
 
@@ -108,19 +110,25 @@ export class ControlTurnoReparto implements OnInit {
       clientes: this.cierreTurnoService.obtenerClientes(),
       distribuciones: this.cierreTurnoService.obtenerDistribuciones(),
       repartosTurno: this.cierreTurnoService.obtenerRepartosTurno(),
-      cierres: this.cierreTurnoService.obtenerCierres()
+      cierres: this.cierreTurnoService.obtenerCierres(),
+      produccionesTurno: this.cierreTurnoService.obtenerProducciones()
     }).subscribe({
-      next: ({ jornadas, turnos, clientes, distribuciones, repartosTurno, cierres }) => {
+      next: ({ jornadas, turnos, clientes, distribuciones, repartosTurno, cierres, produccionesTurno }) => {
         this.jornadas = this.extraerLista(jornadas);
+
         this.turnos = this.extraerLista(turnos)
           .filter((turno) => !this.esTurnoDePrueba(turno));
+
         this.clientes = this.extraerLista(clientes);
+
         this.distribuciones = this.extraerLista(distribuciones).filter((distribucion) => {
           const nombreDistribucion = (distribucion.nombre_distribucion || '').trim().toLowerCase();
           return nombreDistribucion !== 'sala de ventas';
         });
+
         this.repartosTurno = this.extraerLista(repartosTurno);
         this.cierres = this.extraerLista(cierres);
+        this.produccionesTurno = this.extraerLista(produccionesTurno);
 
         this.estadoVisual = 'SIN_INICIAR';
         this.calcularResumenOperativo();
@@ -130,7 +138,7 @@ export class ControlTurnoReparto implements OnInit {
       error: (error) => {
         this.cargando = false;
         this.mostrarError(
-          this.obtenerMensajeError(error, 'No se pudieron cargar los datos iniciales del mÃ³dulo.')
+          this.obtenerMensajeError(error, 'No se pudieron cargar los datos iniciales del módulo.')
         );
       }
     });
@@ -149,6 +157,21 @@ export class ControlTurnoReparto implements OnInit {
 
     try {
       this.cargandoCierre = true;
+
+      await this.recargarProduccionesTurno();
+
+      const quintalesProduccionTurno = this.obtenerQuintalesProduccionTurno(
+        this.fechaReporte,
+        this.turnoSeleccionado
+      );
+
+      if (quintalesProduccionTurno <= 0) {
+        this.cargandoCierre = false;
+        this.mostrarError(
+          `No existe producción registrada para ${this.formatearFechaISO(this.fechaReporte)} · ${this.obtenerNombreTurnoSeleccionado()}. Registra primero la producción antes de iniciar el control operativo.`
+        );
+        return;
+      }
 
       const jornadaHoy = await this.obtenerOCrearJornadaActual();
       this.jornadaSeleccionada = this.obtenerIdJornada(jornadaHoy);
@@ -178,7 +201,7 @@ export class ControlTurnoReparto implements OnInit {
         return;
       }
 
-      this.prepararPlanillaLimpia();
+      this.prepararPlanillaLimpia(quintalesProduccionTurno);
 
       this.cargandoCierre = false;
     } catch (error) {
@@ -189,7 +212,7 @@ export class ControlTurnoReparto implements OnInit {
     }
   }
 
-  prepararPlanillaLimpia(): void {
+  prepararPlanillaLimpia(quintalesProduccionTurno = 0): void {
     this.cierreActual = null;
     this.cierrePendienteDetectado = null;
     this.estadoVisual = 'INGRESANDO';
@@ -197,7 +220,7 @@ export class ControlTurnoReparto implements OnInit {
     this.mostrarBloqueoFinalizado = false;
     this.mostrarModalExito = false;
 
-    this.quintalesTurno = 0;
+    this.quintalesTurno = quintalesProduccionTurno;
 
     this.formulario = {
       mostrador_kg: 0,
@@ -226,6 +249,21 @@ export class ControlTurnoReparto implements OnInit {
     try {
       this.cargandoCierre = true;
 
+      await this.recargarProduccionesTurno();
+
+      const quintalesProduccionTurno = this.obtenerQuintalesProduccionTurno(
+        this.fechaReporte,
+        this.turnoSeleccionado
+      );
+
+      if (quintalesProduccionTurno <= 0) {
+        this.cargandoCierre = false;
+        this.mostrarError(
+          `No existe producción registrada para ${this.formatearFechaISO(this.fechaReporte)} · ${this.obtenerNombreTurnoSeleccionado()}. Registra primero la producción antes de iniciar el control operativo.`
+        );
+        return;
+      }
+
       const repartosPendientes = this.repartosTurno.filter((reparto) => {
         return reparto.id_jornada === this.jornadaSeleccionada
           && reparto.id_turno === this.turnoSeleccionado;
@@ -249,7 +287,7 @@ export class ControlTurnoReparto implements OnInit {
       await this.recargarCierres();
       await this.recargarRepartosTurno();
 
-      this.prepararPlanillaLimpia();
+      this.prepararPlanillaLimpia(quintalesProduccionTurno);
 
       this.cargandoCierre = false;
     } catch (error) {
@@ -311,6 +349,11 @@ export class ControlTurnoReparto implements OnInit {
     this.repartosTurno = this.extraerLista(respuesta);
   }
 
+  async recargarProduccionesTurno(): Promise<void> {
+    const respuesta = await firstValueFrom(this.cierreTurnoService.obtenerProducciones());
+    this.produccionesTurno = this.extraerLista(respuesta);
+  }
+
   buscarCierrePorJornadaTurno(idJornada: number, idTurno: number): CierreTurno | null {
     const cierreEncontrado = this.cierres.find((cierre) => {
       const cierreJornada = this.obtenerIdJornadaDesdeCierre(cierre);
@@ -320,6 +363,21 @@ export class ControlTurnoReparto implements OnInit {
     });
 
     return cierreEncontrado || null;
+  }
+
+  obtenerQuintalesProduccionTurno(fecha: string, idTurno: number | null): number {
+    if (!fecha || !idTurno) {
+      return 0;
+    }
+
+    return this.produccionesTurno
+      .filter((produccion) => {
+        return produccion.jornada_fecha === fecha
+          && Number(produccion.id_turno) === Number(idTurno);
+      })
+      .reduce((total, produccion) => {
+        return total + this.convertirNumero(produccion.quintales);
+      }, 0);
   }
 
   prepararFilasIngresoRapido(): void {
@@ -440,8 +498,13 @@ export class ControlTurnoReparto implements OnInit {
       return;
     }
 
+    if (this.convertirNumero(this.quintalesTurno) <= 0) {
+      this.mostrarError('No se puede finalizar el turno sin quintales registrados desde Producción.');
+      return;
+    }
+
     if (Number(this.formulario.ajuste_por_error_kg) !== 0 && !this.formulario.observacion.trim()) {
-      this.mostrarError('Si existe ajuste por error, la observaciÃ³n es obligatoria.');
+      this.mostrarError('Si existe ajuste por error, la observación es obligatoria.');
       return;
     }
 
@@ -524,7 +587,7 @@ export class ControlTurnoReparto implements OnInit {
       await this.recargarCierres();
       await this.recargarRepartosTurno();
 
-      this.mostrarExito('Datos guardados con Ã©xito.');
+      this.mostrarExito('Datos guardados con éxito.');
       this.mostrarMensajeAccionCierre('El reporte del turno fue finalizado correctamente.');
 
       this.cargandoCierre = false;
@@ -710,7 +773,9 @@ export class ControlTurnoReparto implements OnInit {
       return 0;
     }
 
-    return Number(valor);
+    const numero = Number(valor);
+
+    return Number.isNaN(numero) ? 0 : numero;
   }
 
   formatearNumero(valor: number | string | null | undefined): string {

@@ -23,6 +23,17 @@ export interface Turno {
   nombre_turno?: string;
 }
 
+export interface ProduccionTurno {
+  id_produccion: number;
+  tipo_produccion_nombre: string;
+  turno_nombre: string;
+  jornada_fecha: string;
+  quintales: string | number;
+  id_jornada: number;
+  id_tipo_produccion: number;
+  id_turno: number;
+}
+
 export interface Cliente {
   id?: number;
   id_cliente?: number;

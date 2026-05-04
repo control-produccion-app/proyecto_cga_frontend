@@ -800,3 +800,15 @@ table {
   .resultado-rinde {
     grid-template-columns: 1fr;
   }
+.dato-solo-lectura {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: var(--color-texto);
+  font-weight: 700;
+}

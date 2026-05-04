@@ -10,6 +10,7 @@ import {
   Jornada,
   JornadaPayload,
   MovimientoTurno,
+  ProduccionTurno,
   RepartoTurno,
   RepartoTurnoPayload,
   RespuestaListaApi,
@@ -87,6 +88,12 @@ export class CierreTurnoService {
 
   obtenerMovimientos(): Observable<RespuestaListaApi<MovimientoTurno>> {
     return this.http.get<RespuestaListaApi<MovimientoTurno>>(`${this.apiUrl}/movimientos/`);
+  }
+
+    obtenerProducciones(): Observable<RespuestaListaApi<ProduccionTurno> | ProduccionTurno[]> {
+    return this.http.get<RespuestaListaApi<ProduccionTurno> | ProduccionTurno[]>(
+      `${this.apiUrl}/producciones/`
+    );
   }
 
 }
